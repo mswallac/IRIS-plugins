@@ -91,4 +91,6 @@
 		</dependency>
 	</dependencies>
 	<name>apply_LUT</name>
+	<version>1.0</version>
+	<groupId>OCN</groupId>
 </project>
