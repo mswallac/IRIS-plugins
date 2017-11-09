@@ -37,11 +37,12 @@ public class generate_LUT implements PlugIn {
 	
 	public void getRef(){
 		JPanel selectPanel = new JPanel();
-		selectPanel.setLayout(new GridLayout(2,1,0,0));
+		selectPanel.setLayout(new GridLayout(1,1,0,0));
 		selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 		imp.getWindow().toFront();
 		IJ.setTool(Toolbar.RECTANGLE);
 		
+		/*
 		JButton referenceButton = new JButton("Get reference intensity");
 		referenceButton.setEnabled(true);
 		referenceButton.addActionListener(new ActionListener(){
@@ -52,14 +53,13 @@ public class generate_LUT implements PlugIn {
 		});
 		refLabel = new JLabel("");
 		selectPanel.add(referenceButton);
-		selectPanel.add(refLabel);
+		selectPanel.add(refLabel); */
 		
 		JButton filmButton = new JButton("Get film intensity");
-		referenceButton.setEnabled(true);
-		referenceButton.addActionListener(new ActionListener(){
+		filmButton.setEnabled(true);
+		filmButton.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
 				filmavg=takeroimean(imp.getRoi());
-				filmLabel.setText(""+filmavg);
 			}
 		});
 		filmLabel = new JLabel("");

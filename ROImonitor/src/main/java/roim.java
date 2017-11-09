@@ -392,7 +392,7 @@ public class roim
     		table.addValue("Reference Intensity",reference);
     		table.addValue("Background Intensity",background);
     		table.addValue("Spot Intensity",spot);
-            IJ.wait(150);
+            IJ.wait(70);
         }else if(spotno==2){
         	reference=takeroimean(overlay.get(overlay.getIndex("Reference")));
         	background=takeroimean(overlay.get(overlay.getIndex("Background 1")));
@@ -403,8 +403,7 @@ public class roim
         	normspot1=(spot1-background1)/reference;
             if(normspot>max){
             	max=normspot;
-            }
-            if(normspot1>max){
+            }else if(normspot1>max){
             	max=normspot1;
             }
             f.add(tval/1000);
@@ -425,7 +424,7 @@ public class roim
     		table.addValue("Spot-1 Intensity",spot);
     		table.addValue("Background-2 Intensity",background1);
     		table.addValue("Spot-2 Intensity",spot1);
-            IJ.wait(150);
+            IJ.wait(70);
         }else if(spotno==3){
         	reference=takeroimean(overlay.get(overlay.getIndex("Reference")));
         	background=takeroimean(overlay.get(overlay.getIndex("Background 1")));
@@ -439,11 +438,9 @@ public class roim
         	normspot2=(spot2-background2)/reference;
             if(normspot>max){
             	max=normspot;
-            }
-            if(normspot1>max){
+            }else if(normspot1>max){
             	max=normspot1;
-            }
-            if(normspot2>max){
+            }else if(normspot2>max){
             	max=normspot2;
             }
             f.add(tval/1000);
@@ -470,6 +467,7 @@ public class roim
     		table.addValue("Spot-2 Intensity",spot1);
     		table.addValue("Background-3 Intensity",background2);
     		table.addValue("Spot-3 Intensity",spot2);
+    		IJ.wait(70);
         }
     }
 
