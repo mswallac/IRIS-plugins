@@ -3,20 +3,16 @@ import ij.plugin.PlugIn;
 import ij.plugin.frame.*;
 import ij.process.*;
 import ij.gui.*;
-
 import java.awt.*;
 import java.awt.event.*;
 import java.text.DecimalFormat;
 import java.util.*;
-
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-
 import org.apache.commons.lang.time.StopWatch;
-
 import ij.measure.ResultsTable;
 
 /*
@@ -61,7 +57,7 @@ public class roim
         if (imp==null){
         	IJ.noImage(); // get and check for image, return if there is none
         	return;
-        	}
+       	}
     	
     	GenericDialog gd = new GenericDialog("Region of Interest Monitor");
     	gd.addNumericField("Choose number of spots (Max: 3)", 1, 1);

@@ -8,11 +8,10 @@
 	<parent>
 		<groupId>org.scjava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<relativePath />
 		<version>14.0.0</version>
 	</parent>
 
-	<groupId>group</groupId>
+	<groupId>OCN</groupId>
 	<artifactId>Spandex_</artifactId>
 	<version>1.0</version>
 

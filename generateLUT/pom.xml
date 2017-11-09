@@ -12,17 +12,17 @@
 		<relativePath />
 	</parent>
 
-	<groupId>com.mycompany</groupId>
-	<artifactId>Process_Pixels</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<groupId>OCN</groupId>
+	<artifactId>generate_LUT</artifactId>
+	<version>1.0-WIP</version>
 
-	<name>Process Pixels</name>
-	<description>A Maven project implementing an ImageJ 1.x plugin.</description>
-	<url>http://mycompany.com/imagej/process-pixels/</url>
-	<inceptionYear>2012</inceptionYear>
+	<name>Generate LUT</name>
+	<description>A plugin which generates a lookup table given a 4 channel image</description>
+	<url></url>
+	<inceptionYear>2017</inceptionYear>
 	<organization>
-		<name>My Company</name>
-		<url>http://mycompany.com/</url>
+		<name>OCN</name>
+		<url>ultra.bu.edu</url>
 	</organization>
 	<licenses>
 		<license>
@@ -85,12 +85,6 @@
 		</mailingList>
 	</mailingLists>
 
-	<scm>
-		<connection>scm:git:git://github.com/imagej/example-legacy-plugin</connection>
-		<developerConnection>scm:git:git@github.com:imagej/example-legacy-plugin</developerConnection>
-		<tag>HEAD</tag>
-		<url>https://github.com/imagej/example-legacy-plugin</url>
-	</scm>
 	<issueManagement>
 		<system>GitHub Issues</system>
 		<url>https://github.com/imagej/example-legacy-plugin/issues</url>
@@ -99,12 +93,6 @@
 		<system>None</system>
 	</ciManagement>
 
-	<properties>
-		<package-name>com.mycompany.imagej</package-name>
-		<main-class>com.mycompany.imagej.Process_Pixels</main-class>
-		<license.licenseName>bsd_2</license.licenseName>
-		<license.copyrightOwners>My Company, Inc.</license.copyrightOwners>
-	</properties>
 
 	<dependencies>
 		<dependency>
