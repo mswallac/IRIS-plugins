@@ -276,7 +276,7 @@ public class roim
     // the background thread for plotting.
     public void run() {
         while (true) {
-            IJ.wait(50);                            //delay to make sure the roi has been updated
+            IJ.wait(40);                            //delay to make sure the roi has been updated
             ImageProcessor ip = getPlot();
             if (ip != null) plotImage.setProcessor(null, ip);
             synchronized(this) {
