@@ -21,7 +21,7 @@ import ij.process.ImageProcessor;
 public class generate_LUT implements PlugIn {
 	public ImagePlus imp;
 	public boolean canContinue,didCancel;
-	public double refavg,filmavg;
+	public double[] filmavgs = new double[4],refavgs = new double[4];
 	public JFrame roiguide;
 	public JLabel refLabel,filmLabel;
 	
@@ -31,37 +31,49 @@ public class generate_LUT implements PlugIn {
         	IJ.noImage(); // get and check for image, return if there is none
         	return;
         }
+        if(!(imp.getNChannels()==4)||!(imp.getNFrames()==1)) IJ.error("Use 4 channel, single frame image!");
+
         getRef();
         // make LUT after getting values
+        IJ.log("refChannelN,filmChannelN");
+		for(int i=1;i<5;i++){
+			IJ.log(""+refavgs[i-1]+","+filmavgs[i-1]);
+		}
 	}	
 	
 	public void getRef(){
 		JPanel selectPanel = new JPanel();
-		selectPanel.setLayout(new GridLayout(1,1,0,0));
+		selectPanel.setLayout(new GridLayout(2,1,0,0));
 		selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 		imp.getWindow().toFront();
 		IJ.setTool(Toolbar.RECTANGLE);
 		
-		/*
 		JButton referenceButton = new JButton("Get reference intensity");
 		referenceButton.setEnabled(true);
 		referenceButton.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				refavg=takeroimean(imp.getRoi());
-				refLabel.setText(""+refavg);
+				for(int i=1;i<5;i++){
+					imp.setC(i);
+					refavgs[i-1]=takeroimean(imp.getRoi());
+				}
 			}
 		});
-		refLabel = new JLabel("");
 		selectPanel.add(referenceButton);
-		selectPanel.add(refLabel); */
 		
-		JButton filmButton = new JButton("Get film intensity");
+		JButton filmButton = new JButton("Get film intensities");
 		filmButton.setEnabled(true);
 		filmButton.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				filmavg=takeroimean(imp.getRoi());
+				for(int i=1;i<5;i++){
+					imp.setC(i);
+					filmavgs[i-1]=takeroimean(imp.getRoi());
+				}
+		        IJ.log((""+(imp.getRoi()==null)));
 			}
 		});
+		
+
+		
 		filmLabel = new JLabel("");
 		selectPanel.add(filmButton);
 		selectPanel.add(filmLabel);
@@ -91,13 +103,22 @@ public class generate_LUT implements PlugIn {
 		buttonPanel.add(okButton);
 
 		// Create and populate the JFrame
-		roiguide = new JFrame("Get film and refrence reflectance values:");
+		roiguide = new JFrame("Get film and reference reflectance values:");
 		roiguide.getContentPane().add(selectPanel, BorderLayout.NORTH);
 		roiguide.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
 		roiguide.setLocation(400,400);
 		roiguide.setVisible(true);
 		roiguide.setResizable(false);
 		roiguide.pack();
+		
+		while (!canContinue){
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
 	}
 	
 	public double takeroimean(Roi roi) {
