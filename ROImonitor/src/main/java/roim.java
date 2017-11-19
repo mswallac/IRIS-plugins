@@ -24,7 +24,7 @@ public class roim
     private ImagePlus plotImage;            //where we plot the profile
     private Thread bgThread;                //thread for plotting
     private boolean doUpdate,didCancel,canContinue;
-    public double countval=1,max=0,reference,background,spot,background1,spot1,background2,spot2,normspot,
+    public double countval=1,max=0,min=0,reference,background,spot,background1,spot1,background2,spot2,normspot,
     		normspot1,normspot2,spotno,roino;
     public int ref,current=0,sno=0,rno=0,bno=0;
     public ArrayList<Double> f = new ArrayList<Double>();
@@ -350,11 +350,14 @@ public class roim
         String yLabel = "Normalized Intensity";
         if(spotno==1){
         	plot = new Plot("",xLabel,yLabel);
+        	plot.setLimits(0, f.get(f.size()-1), min, max);
+        	IJ.log(""+min+" "+max);
         	plot.setColor(Color.red);
         	plot.addPoints(f, in3, PlotWindow.LINE);
         	plot.addLabel(0.1, 0.1, "Spot 1");
         	}else if(spotno==2){
         	plot = new Plot("",xLabel,yLabel);
+        	plot.setLimits(0, f.get(f.size()-1), min, max);
         	plot.setColor(Color.red);
         	plot.addPoints(f, in3, PlotWindow.LINE);
         	plot.addLabel(0.1, 0.1, "Spot 1");
@@ -363,6 +366,7 @@ public class roim
         	plot.addLabel(0.1, 0.2, "Spot 2");
         }else if(spotno==3){
         	plot = new Plot("",xLabel,yLabel);
+        	plot.setLimits(0, f.get(f.size()-1), min, max);
         	plot.setColor(Color.red);
         	plot.addPoints(f, in3, PlotWindow.LINE);
         	plot.addLabel(0.1, 0.1, "Spot 1");
@@ -383,9 +387,9 @@ public class roim
         	background=takeroimean(overlay.get(overlay.getIndex("Background 1")));
         	spot=takeroimean(overlay.get(overlay.getIndex("Spot 1")));
         	normspot=(spot-background)/reference;
-            if(normspot>max){
-            	max=normspot;
-            }
+            if(normspot>max)max=(normspot*1.1);
+            if(normspot<min&&normspot<0)min=(normspot*1.1);
+            if(normspot<min&&normspot>0)min=(normspot*1.1);
             f.add(tval/1000);
             in.add(reference);
             in1.add(background);
@@ -407,11 +411,10 @@ public class roim
         	spot1=takeroimean(overlay.get(overlay.getIndex("Spot 2")));
         	normspot=(spot-background)/reference;
         	normspot1=(spot1-background1)/reference;
-            if(normspot>max){
-            	max=normspot;
-            }else if(normspot1>max){
-            	max=normspot1;
-            }
+            if(normspot>max)max=(normspot*1.1);
+            if(normspot1>max)max=(normspot1*1.1);
+            if(normspot<min)min=(normspot*1.1);
+            if(normspot1<min)min=(normspot1*1.1);
             f.add(tval/1000);
             in.add(reference);
             in1.add(background);
@@ -442,13 +445,12 @@ public class roim
         	normspot=(spot-background)/reference;
         	normspot1=(spot1-background1)/reference;
         	normspot2=(spot2-background2)/reference;
-            if(normspot>max){
-            	max=normspot;
-            }else if(normspot1>max){
-            	max=normspot1;
-            }else if(normspot2>max){
-            	max=normspot2;
-            }
+            if(normspot>max)max=(normspot*1.1);
+            if(normspot1>max)max=(normspot1*1.1);
+            if(normspot2>max)max=(normspot2*1.1);
+            if(normspot<min)min=(normspot*1.1);
+            if(normspot1<min)min=(normspot1*1.1);
+            if(normspot2<min)min=(normspot2*1.1);
             f.add(tval/1000);
             in.add(reference);
             in1.add(background);
