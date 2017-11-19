@@ -196,7 +196,9 @@ public class roim
     	}else {
     		rno++;
         	current++;
-    		overlay.add(imp.getRoi(),"Reference");
+        	Roi roi=imp.getRoi();
+        	roi.setName("Reference");
+    		overlay.addElement(roi);
     		refLabel.setText("("+printformat.format(rno)+"/1)");
     	}
 		if(rno==1){
@@ -211,7 +213,9 @@ public class roim
     	}else {
     		bno++;
         	current++;
-    		overlay.add(imp.getRoi(),"Background "+bno);
+        	Roi roi=imp.getRoi();
+        	roi.setName("Background "+bno);
+    		overlay.addElement(roi);
     		backgroundButton.setText("Add background "+printformat.format(bno+1));
     		backgroundLabel.setText("("+printformat.format(bno)+"/"+printformat.format(spotno)+")");
     	}
@@ -230,7 +234,9 @@ public class roim
     		}else{
     			sno++;
         		current++;
-        		overlay.add(imp.getRoi(),"Spot "+sno);
+        		Roi roi=imp.getRoi();
+            	roi.setName("Spot "+sno);
+        		overlay.addElement(roi);
     			spotButton.setText("Add spot "+printformat.format(sno+1));
     			spotLabel.setText("("+printformat.format(sno)+"/"+printformat.format(spotno)+")");
     		}
