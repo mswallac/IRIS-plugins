@@ -350,7 +350,6 @@ public class roim
         if(spotno==1){
         	plot = new Plot("",xLabel,yLabel);
         	plot.setLimits(0, f.get(f.size()-1), min, max);
-        	IJ.log(""+min+" "+max);
         	plot.setColor(Color.red);
         	plot.addPoints(f, in3, PlotWindow.LINE);
         	plot.addLabel(0.1, 0.1, "Spot 1");
