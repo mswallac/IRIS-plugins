@@ -14,7 +14,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import org.apache.commons.lang.time.StopWatch;
 import ij.measure.ResultsTable;
-
 /*
  * This plugin takes regions of interests and monitors the mean intensity of each of them
  */
