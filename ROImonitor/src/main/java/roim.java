@@ -388,8 +388,8 @@ public class roim
         	spot=takeroimean(overlay.get(overlay.getIndex("Spot 1")));
         	normspot=(spot-background)/reference;
             if(normspot>max)max=(normspot*1.1);
+            if(normspot<min&&normspot>0)min=(normspot*.9);
             if(normspot<min&&normspot<0)min=(normspot*1.1);
-            if(normspot<min&&normspot>0)min=(normspot*1.1);
             f.add(tval/1000);
             in.add(reference);
             in1.add(background);
@@ -413,8 +413,10 @@ public class roim
         	normspot1=(spot1-background1)/reference;
             if(normspot>max)max=(normspot*1.1);
             if(normspot1>max)max=(normspot1*1.1);
-            if(normspot<min)min=(normspot*1.1);
-            if(normspot1<min)min=(normspot1*1.1);
+            if(normspot<min&&normspot>0)min=(normspot*.9);
+            if(normspot1<min&&normspot1>0)min=(normspot1*.9);
+            if(normspot<min&&normspot<0)min=(normspot*1.1);
+            if(normspot1<min&&normspot1<0)min=(normspot1*1.1);
             f.add(tval/1000);
             in.add(reference);
             in1.add(background);
@@ -448,9 +450,12 @@ public class roim
             if(normspot>max)max=(normspot*1.1);
             if(normspot1>max)max=(normspot1*1.1);
             if(normspot2>max)max=(normspot2*1.1);
-            if(normspot<min)min=(normspot*1.1);
-            if(normspot1<min)min=(normspot1*1.1);
-            if(normspot2<min)min=(normspot2*1.1);
+            if(normspot<min&&normspot>0)min=(normspot*.9);
+            if(normspot1<min&&normspot1>0)min=(normspot1*.9);
+            if(normspot2<min&&normspot2>0)min=(normspot2*.9);
+            if(normspot<min&&normspot<0)min=(normspot*1.1);
+            if(normspot1<min&&normspot1<0)min=(normspot1*1.1);
+            if(normspot2<min&&normspot2<0)min=(normspot2*1.1);
             f.add(tval/1000);
             in.add(reference);
             in1.add(background);
