@@ -3,6 +3,7 @@ import ij.plugin.PlugIn;
 import ij.plugin.frame.*;
 import ij.process.*;
 import ij.gui.*;
+import ij.gui.Plot;
 import java.awt.*;
 import java.awt.event.*;
 import java.text.DecimalFormat;
