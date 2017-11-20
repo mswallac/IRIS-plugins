@@ -1,3 +1,10 @@
+import ij.IJ;
+import ij.ImagePlus;
+import ij.gui.Roi;
+import ij.gui.Toolbar;
+import ij.plugin.PlugIn;
+import ij.process.ImageProcessor;
+
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
@@ -10,13 +17,8 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import ij.IJ;
-import ij.ImageJ;
-import ij.ImagePlus;
-import ij.gui.Roi;
-import ij.gui.Toolbar;
-import ij.plugin.PlugIn;
-import ij.process.ImageProcessor;
+import org.apache.commons.math3.analysis.function.Exp;
+import org.apache.commons.math3.complex.Complex;
 
 public class generate_LUT implements PlugIn {
 	public ImagePlus imp;
@@ -27,20 +29,35 @@ public class generate_LUT implements PlugIn {
 	
 	public void run(String arg){
 		imp = IJ.getImage();
-        if (imp==null){
-        	IJ.noImage(); // get and check for image, return if there is none
-        	return;
-        }
+		/*
         if(!(imp.getNChannels()==4)||!(imp.getNFrames()==1)) IJ.error("Use 4 channel, single frame image!");
-
         getRef();
-        // make LUT after getting values
-        IJ.log("refChannelN,filmChannelN");
-		for(int i=1;i<5;i++){
-			IJ.log(""+refavgs[i-1]+","+filmavgs[i-1]);
+        */
+        IJ.log("[");
+		for(int i=0;i<401;i++){
+			double de = fresnel(1.0,1.45,4.2,800,(400+i));
+			IJ.log((400+i)+","+de+";");
 		}
+        IJ.log("]");
 	}	
 	
+	public double fresnel(double n1,double n2,double n3,double d,double l){
+		double r0,r1,D,req=0;
+		r0=(n1-n2)/(n1+n2);
+		r1=(n2-n3)/(n2+n3);
+		D=((Math.PI)*2*d*n2)/l;
+		Complex mid,id;
+		id= new Complex(0.0,D);
+		mid= new Complex(0.0,D);
+		mid=mid.multiply(-1);
+		Complex meid=mid.exp();
+		Complex eid=id.exp();
+		Complex numer=((meid.multiply(r0)).add((eid.multiply(r1))));
+		Complex denom=meid.add(eid.multiply(r0*r1));
+		req=(numer.divide(denom)).abs();
+		return req;
+	}
+
 	public void getRef(){
 		JPanel selectPanel = new JPanel();
 		selectPanel.setLayout(new GridLayout(2,1,0,0));
@@ -68,7 +85,6 @@ public class generate_LUT implements PlugIn {
 					imp.setC(i);
 					filmavgs[i-1]=takeroimean(imp.getRoi());
 				}
-		        IJ.log((""+(imp.getRoi()==null)));
 			}
 		});
 		
