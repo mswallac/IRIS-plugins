@@ -35,7 +35,7 @@ public class generate_LUT implements PlugIn {
         */
         IJ.log("[");
 		for(int i=0;i<401;i++){
-			double de = fresnel(1.0,1.45,4.2,800,(400+i));
+			double de = (fresnel(1.0,1.45,4.2,800,(400+i)));
 			IJ.log((400+i)+","+de+";");
 		}
         IJ.log("]");
@@ -60,7 +60,7 @@ public class generate_LUT implements PlugIn {
 
 	public void getRef(){
 		JPanel selectPanel = new JPanel();
-		selectPanel.setLayout(new GridLayout(2,1,0,0));
+		selectPanel.setLayout(new GridLayout(1,2,0,0));
 		selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 		imp.getWindow().toFront();
 		IJ.setTool(Toolbar.RECTANGLE);
