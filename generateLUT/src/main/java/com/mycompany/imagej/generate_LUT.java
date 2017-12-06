@@ -4,12 +4,15 @@ import ij.gui.Roi;
 import ij.gui.Toolbar;
 import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
+import ij.text.TextPanel;
+import ij.text.TextWindow;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -23,22 +26,23 @@ import org.apache.commons.math3.complex.Complex;
 public class generate_LUT implements PlugIn {
 	public ImagePlus imp;
 	public boolean canContinue,didCancel;
+	public int s1,s2;
 	public double[] filmavgs = new double[4],refavgs = new double[4];
+	public double[][] c1 = new double[2501][2],c2 = new double[2501][2],c3 = new double[2501][2],c4 = new double[2501][2];
+	public double[][] risi = new double[129][2],risio2 = new double[101][2],ripmma = new double[101][2];
+    public ArrayList<Float> univ = new ArrayList<Float>();
 	public JFrame roiguide;
 	public JLabel refLabel,filmLabel;
 	
+	
 	public void run(String arg){
 		imp = IJ.getImage();
-		/*
+		
+        
+        /*
         if(!(imp.getNChannels()==4)||!(imp.getNFrames()==1)) IJ.error("Use 4 channel, single frame image!");
         getRef();
         */
-        IJ.log("[");
-		for(int i=0;i<401;i++){
-			double de = (fresnel(1.0,1.45,4.2,800,(400+i)));
-			IJ.log((400+i)+","+de+";");
-		}
-        IJ.log("]");
 	}	
 	
 	public double fresnel(double n1,double n2,double n3,double d,double l){
@@ -155,4 +159,75 @@ public class generate_LUT implements PlugIn {
 		}
 		return (sum/count);
 		}
+
+public void loaddata(){
+	TextWindow tw = new TextWindow("C:/Users/Mike/Desktop/OCN/ledspectra.txt",1,1);
+    TextPanel tp = tw.getTextPanel();
+    
+    for(int i=1;i<=tp.getLineCount()-1;i++){
+    	String s[] = tp.getLine(i).split("	");
+    	c1[i][0]=(Float.parseFloat(s[0]));
+    	c1[i][1]=(Float.parseFloat(s[1]));
+    	c2[i][0]=(Float.parseFloat(s[2]));
+    	c2[i][1]=(Float.parseFloat(s[3]));
+    	c3[i][0]=(Float.parseFloat(s[4]));
+    	c3[i][1]=(Float.parseFloat(s[5]));
+    	c4[i][0]=(Float.parseFloat(s[6]));
+    	c4[i][1]=(Float.parseFloat(s[7]));
+    	s1=i;
+    }
+    tw.dispose();
+    tw = new TextWindow("C:/Users/Mike/Desktop/OCN/test1.txt",1,1);
+    tp = tw.getTextPanel();
+    
+    for(int i=1;i<=tp.getLineCount()-1;i++){
+    	String s[] = tp.getLine(i).split("	");
+    	risi[i][0]=(Float.parseFloat(s[0]));
+    	risi[i][1]=(Float.parseFloat(s[1]));
+    	if(i<=100){
+	    	risio2[i][0]=(Float.parseFloat(s[2]));
+	    	risio2[i][1]=(Float.parseFloat(s[3]));
+	    	ripmma[i][0]=(Float.parseFloat(s[4]));
+	    	ripmma[i][1]=(Float.parseFloat(s[5]));
+    	}
+    	s2=i;
+    }
+}
+//figure out how matlab interpolates and then go from there
+public float interpolatespectra(float data[][],float input,int j,int k){
+	boolean oobret;
+	int ind=-1;
+	for(int i=0;i<s1;i++){
+		if(input>r.get(i) && input<r.get(i+1)) ind=i;
+	}
+	float x1 = r.get(ind);
+	float x2 = r.get(ind+1);
+	float y1 = h.get(ind);
+	float y2 = h.get(ind+1);
+	float result=(((y2-y1)/(x2-x1))*(input-x1))+y1;
+	if(oobret){
+		oobret=false;
+		return 0;
+	}else {
+		return result;
+	}
+}
+public float interpolaterind(float data[][],float input,int j,int k){
+	boolean oobret;
+	for(int i=0;i<s2;i++){
+		if(input>r.get(i) && input<r.get(i+1)) ind=i;
+		if((i==r.size()-2)&&(r.get(i+1)<input)) oobret=true;
+	}
+	float x1 = r.get(ind);
+	float x2 = r.get(ind+1);
+	float y1 = h.get(ind);
+	float y2 = h.get(ind+1);
+	float result=(((y2-y1)/(x2-x1))*(input-x1))+y1;
+	if(oobret){
+		oobret=false;
+		return 0;
+	}else {
+		return result;
+	}
+}
 }
