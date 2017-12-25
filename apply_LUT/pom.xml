@@ -8,22 +8,18 @@
 	<parent>
 		<groupId>org.scijava</groupId>
 		<artifactId>pom-scijava</artifactId>
-		<relativePath />
 		<version>14.0.0</version>
+		<relativePath />
 	</parent>
 
+	<groupId>OCN</groupId>
 	<artifactId>apply_LUT</artifactId>
+	<version>1.0</version>
 
-	<description>Plugin to apply reflectivity/thickness LUT</description>
-	<url></url>
-	<inceptionYear>2017</inceptionYear>
-	<organization>
-		<name></name>
-		<url></url>
-	</organization>
+	<inceptionYear>2012</inceptionYear>
 	<licenses>
 		<license>
-			<name></name>
+			<name>Simplified BSD License</name>
 			<distribution>repo</distribution>
 		</license>
 	</licenses>
@@ -82,6 +78,12 @@
 		</mailingList>
 	</mailingLists>
 
+	<scm>
+		<tag>HEAD</tag>
+	</scm>
+	<ciManagement>
+		<system>None</system>
+	</ciManagement>
 
 
 	<dependencies>
@@ -90,7 +92,4 @@
 			<artifactId>ij</artifactId>
 		</dependency>
 	</dependencies>
-	<name>apply_LUT</name>
-	<version>1.0</version>
-	<groupId>OCN</groupId>
 </project>

@@ -394,7 +394,7 @@ public class roim
             in1.add(background);
             in2.add(spot);
             in3.add(normspot);
-    		table.show("Time || Intensity");
+    		table.show("Data");
     		table.incrementCounter();
     		table.addValue("Time",tval/1000);
     		table.addValue("Normalized Spot Intensity",normspot);
@@ -424,7 +424,7 @@ public class roim
             in4.add(background1);
             in5.add(spot1);
             in6.add(normspot1);
-    		table.show("Time || Intensity");
+    		table.show("Data");
     		table.incrementCounter();
     		table.addValue("Time",tval/1000);
     		table.addValue("Normalized Spot-1 Intensity",normspot);
@@ -466,7 +466,7 @@ public class roim
             in7.add(background2);
             in8.add(spot2);
             in9.add(normspot2);
-    		table.show("Time || Intensity");
+    		table.show("Data");
     		table.incrementCounter();
     		table.addValue("Time",tval/1000);
     		table.addValue("Normalized Spot-1 Intensity",normspot);
