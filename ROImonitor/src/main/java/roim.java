@@ -354,7 +354,7 @@ public class roim
         makedata();
         String xLabel = "Time (s)";
         String yLabel = "Normalized Intensity";
-        Color[] colors = {Color.blue,Color.green,Color.red,Color.magenta,Color.orange};
+        Color[] colors = {Color.blue,Color.green,Color.red,Color.cyan,Color.yellow};
     	plot = new Plot("",xLabel,yLabel);
         for(int i=0;i<5 && i<spotno;i++){
         	plot.setLimits(0, f.get(f.size()-1), min, max);
