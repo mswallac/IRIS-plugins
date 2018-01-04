@@ -38,6 +38,7 @@ public class roim
     public ArrayList<Double> in7 = new ArrayList<Double>();
     public ArrayList<Double> in8 = new ArrayList<Double>();
     public ArrayList<Double> in9 = new ArrayList<Double>();
+    public ArrayList<ArrayList<Double>> data = new ArrayList<ArrayList<Double>>();
     public ResultsTable table  = new ResultsTable();
     public ResultsTable resultsTable;
     public RoiManager rm;
@@ -60,27 +61,36 @@ public class roim
        	}
     	
     	GenericDialog gd = new GenericDialog("Region of Interest Monitor");
-    	gd.addNumericField("Choose number of spots (Max: 3)", 1, 1);
+    	gd.addNumericField("Choose number of spots: ", 1, 1);
     	gd.showDialog();
 		if (gd.wasCanceled())
 			return;
     	spotno=gd.getNextNumber();
     	roino=(3+((spotno-1)*2));
-
-    	Color blue = new Color(0,0,255);
-    	overlay.setLabelColor(blue);
-    	overlay.drawLabels(true);
-    	overlay.drawNames(true);
-    	imp.setOverlay(overlay);
-    	if(!roiSelector(imp)) return;
+    	
+    	if(!checkoverlay(imp)){
+    		overlay.clear();
+    		Color blue = new Color(0,0,255);
+	    	overlay.setLabelColor(blue);
+	    	overlay.drawLabels(true);
+	    	overlay.drawNames(true);
+	    	imp.setOverlay(overlay);
+	    	if(!roiSelector(imp)) 
+	    		return;
+    	}else {
+    		current=(int) roino;
+    	}
     	
     	timer = new StopWatch();
     	timer.start();
     	
         if (current!=roino) { // make sure we have image and ROIs before continuing
-            IJ.error("ROI Monitor","Please Select "+printformat.format(roino)+" ROIs"); return;
+            IJ.error("ROI Monitor","Please Select "+printformat.format(roino)+" ROIs");
+            return;
         }
+        
         ImageProcessor ip = getPlot();  // get image processor of plot
+        
         if (ip==null) {                     // check if successful
             IJ.error("ROI Monitor","Data acquisition failed."); return;
         }
@@ -94,6 +104,12 @@ public class roim
         bgThread.setPriority(Math.max(bgThread.getPriority()-3, Thread.MIN_PRIORITY));
         bgThread.start();
         createListeners();
+    }
+    
+    public boolean checkoverlay(ImagePlus imp) {
+    	Overlay test = imp.getOverlay();
+    	overlay=test;
+		return (test.size() == roino); // doesnt check names for now, will just look at number of rois
     }
 
     public boolean roiSelector(ImagePlus imp) {	
@@ -348,39 +364,33 @@ public class roim
         makedata();
         String xLabel = "Time (s)";
         String yLabel = "Normalized Intensity";
-        if(spotno==1){
-        	plot = new Plot("",xLabel,yLabel);
+        Color[] colors = {Color.blue,Color.green,Color.red,Color.magenta,Color.orange};
+    	plot = new Plot("",xLabel,yLabel);
+        for(int i=0;i<5 && i<spotno;i++){
         	plot.setLimits(0, f.get(f.size()-1), min, max);
-        	plot.setColor(Color.red);
-        	plot.addPoints(f, in3, PlotWindow.LINE);
-        	plot.addLabel(0.1, 0.1, "Spot 1");
-        	}else if(spotno==2){
-        	plot = new Plot("",xLabel,yLabel);
-        	plot.setLimits(0, f.get(f.size()-1), min, max);
-        	plot.setColor(Color.red);
-        	plot.addPoints(f, in3, PlotWindow.LINE);
-        	plot.addLabel(0.1, 0.1, "Spot 1");
-        	plot.setColor(Color.blue);
-        	plot.addPoints(f, in6, PlotWindow.LINE);
-        	plot.addLabel(0.1, 0.2, "Spot 2");
-        }else if(spotno==3){
-        	plot = new Plot("",xLabel,yLabel);
-        	plot.setLimits(0, f.get(f.size()-1), min, max);
-        	plot.setColor(Color.red);
-        	plot.addPoints(f, in3, PlotWindow.LINE);
-        	plot.addLabel(0.1, 0.1, "Spot 1");
-        	plot.setColor(Color.blue);
-        	plot.addPoints(f, in6, PlotWindow.LINE);
-        	plot.addLabel(0.1, 0.2, "Spot 2");
-        	plot.setColor(Color.green);
-        	plot.addPoints(f, in9, PlotWindow.LINE);
-        	plot.addLabel(0.1, 0.3, "Spot 3");
+        	plot.setColor(colors[i]);
+        	plot.addPoints(f, data.get((i*3)+3), PlotWindow.LINE);
+        	plot.addLabel(0.1, 0.1*i, "Spot "+(i+1));
         }
         return plot.getProcessor();
     }
 
     public synchronized void makedata(){
+        for(int i=0;i<(spotno*3)+1;i++) {
+        	data.add(new ArrayList<Double>());
+        }
         double tval=(double) timer.getTime();
+<<<<<<< HEAD
+        f.add(tval/1000);
+        table.show("Time || Intensity");
+		table.incrementCounter();
+        reference=takeroimean(overlay.get(overlay.getIndex("Reference")));
+        table.addValue("Reference Intensity",reference);
+        data.get(0).add(reference);
+        for(int i=0;i<spotno;i++) {
+        	background=takeroimean(overlay.get(overlay.getIndex("Background "+(i+1))));
+        	spot=takeroimean(overlay.get(overlay.getIndex("Spot "+(i+1))));
+=======
         if(spotno==1){
         	reference=takeroimean(overlay.get(overlay.getIndex("Reference")));
         	background=takeroimean(overlay.get(overlay.getIndex("Background 1")));
@@ -394,7 +404,7 @@ public class roim
             in1.add(background);
             in2.add(spot);
             in3.add(normspot);
-    		table.show("Time || Intensity");
+    		table.show("Data");
     		table.incrementCounter();
     		table.addValue("Time",tval/1000);
     		table.addValue("Normalized Spot Intensity",normspot);
@@ -424,7 +434,7 @@ public class roim
             in4.add(background1);
             in5.add(spot1);
             in6.add(normspot1);
-    		table.show("Time || Intensity");
+    		table.show("Data");
     		table.incrementCounter();
     		table.addValue("Time",tval/1000);
     		table.addValue("Normalized Spot-1 Intensity",normspot);
@@ -443,16 +453,16 @@ public class roim
         	spot1=takeroimean(overlay.get(overlay.getIndex("Spot 2")));
         	background2=takeroimean(overlay.get(overlay.getIndex("Background 3")));
         	spot2=takeroimean(overlay.get(overlay.getIndex("Spot 3")));
+>>>>>>> 516165e55be1a09c7b6d7a7baa36f48a1c0ea416
         	normspot=(spot-background)/reference;
-        	normspot1=(spot1-background1)/reference;
-        	normspot2=(spot2-background2)/reference;
             if(normspot>max)max=(normspot*1.1);
-            if(normspot1>max)max=(normspot1*1.1);
-            if(normspot2>max)max=(normspot2*1.1);
             if(normspot<min&&normspot>0)min=(normspot*.9);
-            if(normspot1<min&&normspot1>0)min=(normspot1*.9);
-            if(normspot2<min&&normspot2>0)min=(normspot2*.9);
             if(normspot<min&&normspot<0)min=(normspot*1.1);
+<<<<<<< HEAD
+            data.get((i*3)+1).add(background);
+            data.get((i*3)+2).add(spot);
+            data.get((i*3)+3).add(normspot);
+=======
             if(normspot1<min&&normspot1<0)min=(normspot1*1.1);
             if(normspot2<min&&normspot2<0)min=(normspot2*1.1);
             f.add(tval/1000);
@@ -466,21 +476,15 @@ public class roim
             in7.add(background2);
             in8.add(spot2);
             in9.add(normspot2);
-    		table.show("Time || Intensity");
+    		table.show("Data");
     		table.incrementCounter();
+>>>>>>> 516165e55be1a09c7b6d7a7baa36f48a1c0ea416
     		table.addValue("Time",tval/1000);
-    		table.addValue("Normalized Spot-1 Intensity",normspot);
-    		table.addValue("Normalized Spot-2 Intensity",normspot1);
-    		table.addValue("Normalized Spot-3 Intensity",normspot2);
-    		table.addValue("Reference Intensity",reference);
-    		table.addValue("Background-1 Intensity",background);
-    		table.addValue("Spot-1 Intensity",spot);
-    		table.addValue("Background-2 Intensity",background1);
-    		table.addValue("Spot-2 Intensity",spot1);
-    		table.addValue("Background-3 Intensity",background2);
-    		table.addValue("Spot-3 Intensity",spot2);
-    		IJ.wait(70);
+    		table.addValue("Normalized Spot-"+(i+1)+" Intensity",normspot);
+    		table.addValue("Spot-"+(i+1)+" Intensity",spot);
+    		table.addValue("Background-"+(i+1)+" Intensity",background);
         }
+        IJ.wait(70);
     }
 
 	public double takeroimean(Roi roi) {

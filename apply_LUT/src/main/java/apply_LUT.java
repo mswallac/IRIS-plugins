@@ -12,17 +12,10 @@ import ij.io.*;
 import ij.ImagePlus;
 import ij.WindowManager;
 import ij.measure.ResultsTable;
-import ij.plugin.PlugIn;
+import ij.plugin.*;
 import ij.text.TextPanel;
 import ij.text.TextWindow;
 
-
-/**
- * Built on template Process_Pixels
- *
- * Template from: Johannes Schindelin
- * apply_LUT by: Michael Wallace
- */
 public class apply_LUT implements PlugIn {
 
 	public ImagePlus imp;
