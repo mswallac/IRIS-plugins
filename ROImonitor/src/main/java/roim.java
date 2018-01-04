@@ -98,9 +98,15 @@ public class roim
     
     public boolean checkoverlay(ImagePlus imp) {
     	Overlay test = imp.getOverlay();
-    	overlay=test;
-		return (test.size() == roino); // doesnt check names for now, will just look at number of rois
-    }
+    	int a;
+    	if(test!=null) {
+    		overlay=test;
+    		a = test.size();
+    		return (a==roino);
+    	}else {
+    		return (false); // doesnt check names for now, will just look at number of rois
+    	}
+    	}
 
     public boolean roiSelector(ImagePlus imp) {	
     	//GridBagConstraints constraint = new GridBagConstraints(); maybe use to make GUI neat
