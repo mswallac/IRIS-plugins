@@ -28,16 +28,6 @@ public class roim
     		normspot1,normspot2,spotno,roino;
     public int ref,current=0,sno=0,rno=0,bno=0;
     public ArrayList<Double> f = new ArrayList<Double>();
-    public ArrayList<Double> in = new ArrayList<Double>();
-    public ArrayList<Double> in1 = new ArrayList<Double>();
-    public ArrayList<Double> in2 = new ArrayList<Double>();
-    public ArrayList<Double> in3 = new ArrayList<Double>();
-    public ArrayList<Double> in4 = new ArrayList<Double>();
-    public ArrayList<Double> in5 = new ArrayList<Double>();
-    public ArrayList<Double> in6 = new ArrayList<Double>();
-    public ArrayList<Double> in7 = new ArrayList<Double>();
-    public ArrayList<Double> in8 = new ArrayList<Double>();
-    public ArrayList<Double> in9 = new ArrayList<Double>();
     public ArrayList<ArrayList<Double>> data = new ArrayList<ArrayList<Double>>();
     public ResultsTable table  = new ResultsTable();
     public ResultsTable resultsTable;
@@ -370,7 +360,7 @@ public class roim
         	plot.setLimits(0, f.get(f.size()-1), min, max);
         	plot.setColor(colors[i]);
         	plot.addPoints(f, data.get((i*3)+3), PlotWindow.LINE);
-        	plot.addLabel(0.1, 0.1*i, "Spot "+(i+1));
+        	plot.addLabel(0.025, (0.1*i)+0.1, "Spot "+(i+1));
         }
         return plot.getProcessor();
     }
@@ -380,7 +370,6 @@ public class roim
         	data.add(new ArrayList<Double>());
         }
         double tval=(double) timer.getTime();
-<<<<<<< HEAD
         f.add(tval/1000);
         table.show("Time || Intensity");
 		table.incrementCounter();
@@ -390,95 +379,13 @@ public class roim
         for(int i=0;i<spotno;i++) {
         	background=takeroimean(overlay.get(overlay.getIndex("Background "+(i+1))));
         	spot=takeroimean(overlay.get(overlay.getIndex("Spot "+(i+1))));
-=======
-        if(spotno==1){
-        	reference=takeroimean(overlay.get(overlay.getIndex("Reference")));
-        	background=takeroimean(overlay.get(overlay.getIndex("Background 1")));
-        	spot=takeroimean(overlay.get(overlay.getIndex("Spot 1")));
         	normspot=(spot-background)/reference;
             if(normspot>max)max=(normspot*1.1);
             if(normspot<min&&normspot>0)min=(normspot*.9);
             if(normspot<min&&normspot<0)min=(normspot*1.1);
-            f.add(tval/1000);
-            in.add(reference);
-            in1.add(background);
-            in2.add(spot);
-            in3.add(normspot);
-    		table.show("Data");
-    		table.incrementCounter();
-    		table.addValue("Time",tval/1000);
-    		table.addValue("Normalized Spot Intensity",normspot);
-    		table.addValue("Reference Intensity",reference);
-    		table.addValue("Background Intensity",background);
-    		table.addValue("Spot Intensity",spot);
-            IJ.wait(70);
-        }else if(spotno==2){
-        	reference=takeroimean(overlay.get(overlay.getIndex("Reference")));
-        	background=takeroimean(overlay.get(overlay.getIndex("Background 1")));
-        	spot=takeroimean(overlay.get(overlay.getIndex("Spot 1")));
-        	background1=takeroimean(overlay.get(overlay.getIndex("Background 2")));
-        	spot1=takeroimean(overlay.get(overlay.getIndex("Spot 2")));
-        	normspot=(spot-background)/reference;
-        	normspot1=(spot1-background1)/reference;
-            if(normspot>max)max=(normspot*1.1);
-            if(normspot1>max)max=(normspot1*1.1);
-            if(normspot<min&&normspot>0)min=(normspot*.9);
-            if(normspot1<min&&normspot1>0)min=(normspot1*.9);
-            if(normspot<min&&normspot<0)min=(normspot*1.1);
-            if(normspot1<min&&normspot1<0)min=(normspot1*1.1);
-            f.add(tval/1000);
-            in.add(reference);
-            in1.add(background);
-            in2.add(spot);
-            in3.add(normspot);
-            in4.add(background1);
-            in5.add(spot1);
-            in6.add(normspot1);
-    		table.show("Data");
-    		table.incrementCounter();
-    		table.addValue("Time",tval/1000);
-    		table.addValue("Normalized Spot-1 Intensity",normspot);
-    		table.addValue("Normalized Spot-2 Intensity",normspot1);
-    		table.addValue("Reference Intensity",reference);
-    		table.addValue("Background-1 Intensity",background);
-    		table.addValue("Spot-1 Intensity",spot);
-    		table.addValue("Background-2 Intensity",background1);
-    		table.addValue("Spot-2 Intensity",spot1);
-            IJ.wait(70);
-        }else if(spotno==3){
-        	reference=takeroimean(overlay.get(overlay.getIndex("Reference")));
-        	background=takeroimean(overlay.get(overlay.getIndex("Background 1")));
-        	spot=takeroimean(overlay.get(overlay.getIndex("Spot 1")));
-        	background1=takeroimean(overlay.get(overlay.getIndex("Background 2")));
-        	spot1=takeroimean(overlay.get(overlay.getIndex("Spot 2")));
-        	background2=takeroimean(overlay.get(overlay.getIndex("Background 3")));
-        	spot2=takeroimean(overlay.get(overlay.getIndex("Spot 3")));
->>>>>>> 516165e55be1a09c7b6d7a7baa36f48a1c0ea416
-        	normspot=(spot-background)/reference;
-            if(normspot>max)max=(normspot*1.1);
-            if(normspot<min&&normspot>0)min=(normspot*.9);
-            if(normspot<min&&normspot<0)min=(normspot*1.1);
-<<<<<<< HEAD
             data.get((i*3)+1).add(background);
             data.get((i*3)+2).add(spot);
             data.get((i*3)+3).add(normspot);
-=======
-            if(normspot1<min&&normspot1<0)min=(normspot1*1.1);
-            if(normspot2<min&&normspot2<0)min=(normspot2*1.1);
-            f.add(tval/1000);
-            in.add(reference);
-            in1.add(background);
-            in2.add(spot);
-            in3.add(normspot);
-            in4.add(background1);
-            in5.add(spot1);
-            in6.add(normspot1);
-            in7.add(background2);
-            in8.add(spot2);
-            in9.add(normspot2);
-    		table.show("Data");
-    		table.incrementCounter();
->>>>>>> 516165e55be1a09c7b6d7a7baa36f48a1c0ea416
     		table.addValue("Time",tval/1000);
     		table.addValue("Normalized Spot-"+(i+1)+" Intensity",normspot);
     		table.addValue("Spot-"+(i+1)+" Intensity",spot);

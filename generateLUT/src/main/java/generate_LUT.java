@@ -14,7 +14,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -31,13 +30,11 @@ public class generate_LUT implements PlugIn {
 	public ImagePlus imp;
 	public boolean canContinue,didCancel;
 	public int s1=2501,s2=129,s2p=101;
-	public double[] filmavgs = new double[4],refavgs = new double[4];
+	public double[] filmavgs = new double[4],refavgs = new double[4],ydata1 = new double[4];
 	public double[][] c1 = new double[2501][2],c2 = new double[2501][2],c3 = new double[2501][2],c4 = new double[2501][2];
 	public double[][] risi = new double[129][2],risio2 = new double[101][2],ripmma = new double[101][2];
-	public double [][][] allchannels={c1,c2,c3,c4};
 	public ArrayList<Float> univ = new ArrayList<Float>();
-	public ArrayList<Double> ydata1 = new ArrayList<Double>();
-	public final Collection<WeightedObservedPoint> points=new ArrayList<>();
+	public Collection<WeightedObservedPoint> step1;
 	public JFrame roiguide;
 	public JLabel refLabel,filmLabel;
 
@@ -45,15 +42,14 @@ public class generate_LUT implements PlugIn {
 	public void run(String arg){
 		imp = IJ.getImage();
 
-        if(!(imp.getNChannels()==4)||!(imp.getNFrames()==1)) 
-        	IJ.error("Use 4 channel, single frame image!");
+        if(!(imp.getNChannels()==4)||!(imp.getNFrames()==1)) IJ.error("Use 4 channel, single frame image!");
         getRef();
         loaddata();
         ydata1=irisfun(.1,1,0);
-
-        for (int i = 0; i <4; i++) {
-           	WeightedObservedPoint pt = new WeightedObservedPoint(1,ydata1.get(i),filmavgs[i]);
-            points.add(pt);
+        
+        /*for(int i=0;i<=4;i++){
+        	WeightedObservedPoint pt = new WeightedObservedPoint(1.0, ydata1[0],filmavgs[0]);
+        	step1.
         }
         
         
@@ -63,11 +59,12 @@ public class generate_LUT implements PlugIn {
 	     final PolynomialCurveFitter fitter = PolynomialCurveFitter.create(1);
 	
 	     // Retrieve fitted parameters (coefficients of the polynomial function).
-	     final double[] coeff = fitter.fit(points);
+	     final double[] coeff = fitter.fit(step1);
 	     for(int i=0;i<coeff.length;i++)
 	        	IJ.log(""+coeff[i]);
-        for(int i=0;i<4;i++)
-        	IJ.log("C"+i+": "+ydata1.get(i));
+	     */
+        
+	     IJ.log("C1: "+ydata1[0]+"   C2: "+ydata1[1]+"   C3: "+ydata1[2]+"    C4: "+ydata1[3]);
 		
 		//start by getting fit params for irisfun
 		//for d (start)+/-(look above/below)
@@ -118,7 +115,7 @@ public class generate_LUT implements PlugIn {
 
 	public void getRef(){
 		JPanel selectPanel = new JPanel();
-		selectPanel.setLayout(new GridLayout(2,1,0,0));
+		selectPanel.setLayout(new GridLayout(1,2,0,0));
 		selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 		imp.getWindow().toFront();
 		IJ.setTool(Toolbar.RECTANGLE);
@@ -130,22 +127,20 @@ public class generate_LUT implements PlugIn {
 				for(int i=1;i<5;i++){
 					imp.setC(i);
 					refavgs[i-1]=takeroimean(imp.getRoi());
-					IJ.log("ref"+refavgs[i-1]);
 				}
 			}
 		});
 		selectPanel.add(referenceButton);
 
-		JButton filmButton = new JButton("Get film intensity");
+		JButton filmButton = new JButton("Get film intensities");
 		filmButton.setEnabled(true);
 		filmButton.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
 				for(int i=1;i<5;i++){
 					imp.setC(i);
 					filmavgs[i-1]=takeroimean(imp.getRoi());
-					IJ.log("film"+filmavgs[i-1]);
 				}
-				imp.setC(1);
+				imp.setC(1);;
 			}
 		});
 
@@ -251,8 +246,6 @@ public class generate_LUT implements PlugIn {
 	}
 	
 	
-<<<<<<< HEAD
-<<<<<<< HEAD
 	public double[] irisfun(double start,double p1,double p2){
 		double I1,I2,I3,I4,sirefract,rsivalue,rvalue,s1value,s2value,s3value,s4value,m1,m2,m3,m4;
 		double[] isums={0,0,0,0},msums={0,0,0,0}, m = new double[4], I = new double[4],s = new double[4];
@@ -277,53 +270,5 @@ public class generate_LUT implements PlugIn {
 		IJ.log("fitting params: " +p1+","+p2);
 		double[] result1 = {((result[0]*p1)+p2),((result[1]*p1)+p2),((result[2]*p1)+p2),((result[3]*p1)+p2)};
 		return (result1);
-=======
-	public ArrayList<Double> irisfun(double start,double p1,double p2){
-		double sirefract,rsivalue,rvalue,m,s,I;
-		double[] isums={0,0,0,0},msums={0,0,0,0};
-		for(double i=.4;i<.651;i+=0.001){
-			sirefract=interpolate(risi,i,s2);
-			rsivalue=fresnel(1,1.45,sirefract,start,i);
-			rvalue=fresnel(1,1.45,4.2,start,i);
-			for(int j=0;j<4;j++){
-				s=(interpolate(allchannels[j],i,s1));
-				m=(s*rsivalue);
-				I=(s*rvalue);
-				msums[j]+=m;
-				isums[j]+=I;
-			}
-			}
-		ArrayList<Double> res = new ArrayList<Double>();
-		for(int i=0;i<4;i++){
-			res.add(((isums[i]/msums[i])*p1)+p2);
-			IJ.log(""+res.get(i));
-			IJ.log(""+(((isums[i]/msums[i])*p1)+p2));
-		}
-		return (res);
->>>>>>> 516165e55be1a09c7b6d7a7baa36f48a1c0ea416
-=======
-	public ArrayList<Double> irisfun(double start,double p1,double p2){
-		double sirefract,rsivalue,rvalue,m,s,I;
-		double[] isums={0,0,0,0},msums={0,0,0,0};
-		for(double i=.4;i<.651;i+=0.001){
-			sirefract=interpolate(risi,i,s2);
-			rsivalue=fresnel(1,1.45,sirefract,start,i);
-			rvalue=fresnel(1,1.45,4.2,start,i);
-			for(int j=0;j<4;j++){
-				s=(interpolate(allchannels[j],i,s1));
-				m=(s*rsivalue);
-				I=(s*rvalue);
-				msums[j]+=m;
-				isums[j]+=I;
-			}
-			}
-		ArrayList<Double> res = new ArrayList<Double>();
-		for(int i=0;i<4;i++){
-			res.add(((isums[i]/msums[i])*p1)+p2);
-			IJ.log(""+res.get(i));
-			IJ.log(""+(((isums[i]/msums[i])*p1)+p2));
-		}
-		return (res);
->>>>>>> 516165e55be1a09c7b6d7a7baa36f48a1c0ea416
 	}
 }
