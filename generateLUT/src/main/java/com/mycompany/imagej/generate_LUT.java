@@ -252,6 +252,7 @@ public class generate_LUT implements PlugIn {
 	
 	
 <<<<<<< HEAD
+<<<<<<< HEAD
 	public double[] irisfun(double start,double p1,double p2){
 		double I1,I2,I3,I4,sirefract,rsivalue,rvalue,s1value,s2value,s3value,s4value,m1,m2,m3,m4;
 		double[] isums={0,0,0,0},msums={0,0,0,0}, m = new double[4], I = new double[4],s = new double[4];
@@ -276,6 +277,30 @@ public class generate_LUT implements PlugIn {
 		IJ.log("fitting params: " +p1+","+p2);
 		double[] result1 = {((result[0]*p1)+p2),((result[1]*p1)+p2),((result[2]*p1)+p2),((result[3]*p1)+p2)};
 		return (result1);
+=======
+	public ArrayList<Double> irisfun(double start,double p1,double p2){
+		double sirefract,rsivalue,rvalue,m,s,I;
+		double[] isums={0,0,0,0},msums={0,0,0,0};
+		for(double i=.4;i<.651;i+=0.001){
+			sirefract=interpolate(risi,i,s2);
+			rsivalue=fresnel(1,1.45,sirefract,start,i);
+			rvalue=fresnel(1,1.45,4.2,start,i);
+			for(int j=0;j<4;j++){
+				s=(interpolate(allchannels[j],i,s1));
+				m=(s*rsivalue);
+				I=(s*rvalue);
+				msums[j]+=m;
+				isums[j]+=I;
+			}
+			}
+		ArrayList<Double> res = new ArrayList<Double>();
+		for(int i=0;i<4;i++){
+			res.add(((isums[i]/msums[i])*p1)+p2);
+			IJ.log(""+res.get(i));
+			IJ.log(""+(((isums[i]/msums[i])*p1)+p2));
+		}
+		return (res);
+>>>>>>> 516165e55be1a09c7b6d7a7baa36f48a1c0ea416
 =======
 	public ArrayList<Double> irisfun(double start,double p1,double p2){
 		double sirefract,rsivalue,rvalue,m,s,I;
