@@ -354,7 +354,7 @@ public class Spandex_ implements PlugIn {
 	}
 	
 	private ImagePlus Bernsen(ImagePlus imp, int radius,  double par1, double par2, boolean doIwhite ) {
-        //adaptive local thresholding method taken from IJ's adaptive thresholding plugin to make setting options easier
+        //adaptive local thresholding method taken from IJ's adaptive thresholding plugin to make implementation easier
 		ImagePlus Maximp, Minimp;
 		ImageProcessor ip=imp.getProcessor(), ipMax, ipMin;
 		int contrast_threshold=15;

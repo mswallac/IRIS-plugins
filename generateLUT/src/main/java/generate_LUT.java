@@ -1,5 +1,6 @@
 import ij.IJ;
 import ij.ImagePlus;
+import ij.gui.GenericDialog;
 import ij.gui.Roi;
 import ij.gui.Toolbar;
 import ij.plugin.PlugIn;
@@ -29,12 +30,12 @@ import org.apache.commons.math3.complex.Complex;
 public class generate_LUT implements PlugIn {
 	public ImagePlus imp;
 	public boolean canContinue,didCancel;
-	public int s1=2501,s2=129,s2p=101;
+	public int s1=2501,s2=129,s2p=101,thickness,above,below,increment;
 	public double[] filmavgs = new double[4],refavgs = new double[4],ydata1 = new double[4];
-	public double[][] c1 = new double[2501][2],c2 = new double[2501][2],c3 = new double[2501][2],c4 = new double[2501][2];
-	public double[][] risi = new double[129][2],risio2 = new double[101][2],ripmma = new double[101][2];
+	public double[][] c1 = new double[2501][2],c2 = new double[2501][2],c3 = new double[2501][2],c4 = new double[2501][2],
+			risi = new double[129][2],risio2 = new double[101][2],ripmma = new double[101][2];
 	public ArrayList<Float> univ = new ArrayList<Float>();
-	public Collection<WeightedObservedPoint> step1;
+	public WeightedObservedPoints points = new WeightedObservedPoints();
 	public JFrame roiguide;
 	public JLabel refLabel,filmLabel;
 
@@ -47,32 +48,35 @@ public class generate_LUT implements PlugIn {
         loaddata();
         ydata1=irisfun(.1,1,0);
         
-        /*for(int i=0;i<=4;i++){
-        	WeightedObservedPoint pt = new WeightedObservedPoint(1.0, ydata1[0],filmavgs[0]);
-        	step1.
+        for(int i=0;i<4;i++){
+        	points.add(filmavgs[i],ydata1[i]);
         }
-        
-        
-        
 
-	     // Instantiate a third-degree polynomial fitter.
-	     final PolynomialCurveFitter fitter = PolynomialCurveFitter.create(1);
-	
-	     // Retrieve fitted parameters (coefficients of the polynomial function).
-	     final double[] coeff = fitter.fit(step1);
-	     for(int i=0;i<coeff.length;i++)
-	        	IJ.log(""+coeff[i]);
-	     */
-        
-	     IJ.log("C1: "+ydata1[0]+"   C2: "+ydata1[1]+"   C3: "+ydata1[2]+"    C4: "+ydata1[3]);
+    	final Collection<WeightedObservedPoint> step1 = points.toList();
+    	final PolynomialCurveFitter fitter = PolynomialCurveFitter.create(1);
+	    final double[] coeff = fitter.fit(step1); 
+	     
 		
 		//start by getting fit params for irisfun
 		//for d (start)+/-(look above/below)
 		// calculate I = sum((R*s)^2)/sum((rSi*s)^2)
 		//lut will be [d I]?
+	    
+        double[][] ic = new double[(above+below)][4];
+        double[] d = new double[(above+below)];
+        int ct=0;
+	    for(double i = (thickness-below)/1000;i<=(thickness+above)/1000;i+=(increment/1000)) {
+        	ic[ct]=irisfun(i,coeff[1],coeff[2]);
+        	d[ct]=(i*1000);
+        	ct++;
+        }
         
-        
-		
+		//write diff function
+	    //find best color
+	    //make lut
+	    //deal with reference file loading
+	    //and LUT file saving
+	    //resolve discrepancies between this and ML app
 		
 	}	
 
@@ -112,10 +116,29 @@ public class generate_LUT implements PlugIn {
 			return 0;
 		}
 	}
-
+	
+	public void getParams() {
+		GenericDialog gd = new GenericDialog("Generate LUT: ");
+		gd.addNumericField("Approx. T (nm):", 100, 1);
+		gd.addNumericField("Look above:", 10, 1);
+		gd.addNumericField("Look below:", 10, 1);
+		gd.addNumericField("Increment (nm):", 1, 1);
+		
+		gd.showDialog();
+		if (gd.wasCanceled())
+			IJ.error("GenerateLUT cancelled.");
+		
+		thickness=(int)gd.getNextNumber();
+		above=(int)gd.getNextNumber();
+		below=(int)gd.getNextNumber();
+		increment=(int)gd.getNextNumber();
+		
+		return;
+	}
+	
 	public void getRef(){
 		JPanel selectPanel = new JPanel();
-		selectPanel.setLayout(new GridLayout(1,2,0,0));
+		selectPanel.setLayout(new GridLayout(2,1,10,10));
 		selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 		imp.getWindow().toFront();
 		IJ.setTool(Toolbar.RECTANGLE);
@@ -128,6 +151,7 @@ public class generate_LUT implements PlugIn {
 					imp.setC(i);
 					refavgs[i-1]=takeroimean(imp.getRoi());
 				}
+				imp.setC(1);
 			}
 		});
 		selectPanel.add(referenceButton);
@@ -140,15 +164,10 @@ public class generate_LUT implements PlugIn {
 					imp.setC(i);
 					filmavgs[i-1]=takeroimean(imp.getRoi());
 				}
-				imp.setC(1);;
+				imp.setC(1);
 			}
 		});
-
-
-
-		filmLabel = new JLabel("");
 		selectPanel.add(filmButton);
-		selectPanel.add(filmLabel);
 
 		// Create the buttonPanel, which has the "Cancel" and "OK" buttons
 		JPanel buttonPanel = new JPanel();
@@ -175,10 +194,10 @@ public class generate_LUT implements PlugIn {
 		buttonPanel.add(okButton);
 
 		// Create and populate the JFrame
-		roiguide = new JFrame("Get film and reference reflectance values:");
+		roiguide = new JFrame("");
 		roiguide.getContentPane().add(selectPanel, BorderLayout.NORTH);
 		roiguide.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
-		roiguide.setLocation(400,400);
+		roiguide.setLocation(350,410);
 		roiguide.setVisible(true);
 		roiguide.setResizable(false);
 		roiguide.pack();
@@ -251,23 +270,24 @@ public class generate_LUT implements PlugIn {
 		double[] isums={0,0,0,0},msums={0,0,0,0}, m = new double[4], I = new double[4],s = new double[4];
 		for(double i=.4;i<.651;i+=0.001){
 			sirefract=interpolate(risi,i,s2);
-			rsivalue=FastMath.pow(fresnel(1,1.45,sirefract,start,i),2);
-			rvalue=FastMath.pow(fresnel(1,1.45,4.2,start,i),2);
-			s[0]=FastMath.sqrt(interpolate(c1,i,s1));
-			s[1]=FastMath.sqrt(interpolate(c2,i,s1));
-			s[2]=FastMath.sqrt(interpolate(c3,i,s1));
-			s[3]=FastMath.sqrt(interpolate(c4,i,s1));
+			rsivalue=(fresnel(1,1,sirefract,start,i)); //rsi is mirror reflectance in air, so 1 interface means 2 refractive indicies will be the same
+			rvalue=(fresnel(1,1.45,4.2,start,i)); // this calculation may be incorrect -- need calcReflectance?
+			s[0]=(interpolate(c1,i,s1));
+			s[1]=(interpolate(c2,i,s1));
+			s[2]=(interpolate(c3,i,s1));
+			s[3]=(interpolate(c4,i,s1));
+			//IJ.log("RSi: "+rsivalue+" R: "+rvalue);
 			for(int j=0;j<4;j++) {
-				m[j]=FastMath.pow((s[j]*rsivalue),2);
-				I[j]=FastMath.pow((s[j]*rvalue),2);
+				m[j]=((s[j]*rsivalue));
+				I[j]=((s[j]*rvalue));
 				msums[j]+=m[j];
 				isums[j]+=I[j];
+				//IJ.log("S"+j+": "+s[j]+" M"+j+": "+m[j]+" I"+j+": "+I[j]);
+				//IJ.log("m-Sum "+j+": "+msums[j]+" I-sum "+j+":"+isums[j]);
 			}
 		}
-		for(int j=0;j<4;j++)
-			IJ.log("I: "+isums[j]+" M:"+msums[j]);
 		double[] result = {(isums[0]/msums[0]),(isums[1]/msums[1]),(isums[2]/msums[2]),(isums[3]/msums[3])};
-		IJ.log("fitting params: " +p1+","+p2);
+		//IJ.log("fitting params: " +p1+","+p2);
 		double[] result1 = {((result[0]*p1)+p2),((result[1]*p1)+p2),((result[2]*p1)+p2),((result[3]*p1)+p2)};
 		return (result1);
 	}
