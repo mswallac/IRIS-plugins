@@ -23,9 +23,14 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import org.apache.commons.math3.fitting.*;
+import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.stat.StatUtils;
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.commons.math3.util.FastMath;
 import org.apache.commons.math3.analysis.*;
 import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.lang.ArrayUtils;
 
 public class generate_LUT implements PlugIn {
 	public ImagePlus imp;
@@ -35,9 +40,9 @@ public class generate_LUT implements PlugIn {
 	public double[][] c1 = new double[2501][2],c2 = new double[2501][2],c3 = new double[2501][2],c4 = new double[2501][2],
 			risi = new double[129][2],risio2 = new double[101][2],ripmma = new double[101][2];
 	public ArrayList<Float> univ = new ArrayList<Float>();
-	public WeightedObservedPoints points = new WeightedObservedPoints();
 	public JFrame roiguide;
 	public JLabel refLabel,filmLabel;
+	SimpleRegression sr = new SimpleRegression(true);
 
 
 	public void run(String arg){
@@ -49,35 +54,40 @@ public class generate_LUT implements PlugIn {
         ydata1=irisfun(.1,1,0);
         
         for(int i=0;i<4;i++){
-        	points.add(filmavgs[i],ydata1[i]);
+        	sr.addData(filmavgs[i],ydata1[i]);
         }
-
-    	final Collection<WeightedObservedPoint> step1 = points.toList();
-    	final PolynomialCurveFitter fitter = PolynomialCurveFitter.create(1);
-	    final double[] coeff = fitter.fit(step1); 
-	     
 		
+        
+        getParams();
 		//start by getting fit params for irisfun
 		//for d (start)+/-(look above/below)
 		// calculate I = sum((R*s)^2)/sum((rSi*s)^2)
 		//lut will be [d I]?
 	    
-        double[][] ic = new double[(above+below)][4];
-        double[] d = new double[(above+below)];
+        double[][] ic = new double[(above+below)+1][4];
+        double[] d = new double[(above+below)+1], p = {sr.getSlope(),sr.getIntercept()};
         int ct=0;
-	    for(double i = (thickness-below)/1000;i<=(thickness+above)/1000;i+=(increment/1000)) {
-        	ic[ct]=irisfun(i,coeff[1],coeff[2]);
-        	d[ct]=(i*1000);
+        IJ.log("t: "+thickness+" above: "+above+" below: "+below+" increment: "+increment);
+	    for(int i=(thickness-below);i<=(thickness+above);i+=increment) {
+	    	double[] values = new double[4];
+        	values=irisfun((i/1000),p[0],p[1]);
+        	for(int j=0;j<4;j++)
+        		IJ.log(""+values[j]);
+        	d[ct] = (i);
         	ct++;
         }
         
-		//write diff function
+		//write diff/sum function -> bestColor()?
 	    //find best color
 	    //make lut
 	    //deal with reference file loading
 	    //and LUT file saving
 	    //resolve discrepancies between this and ML app
+
+		RealMatrix mat = new Array2DRowRealMatrix(ic);
 		
+	    makeLUT(mat.getColumn(bestColor(ic)),d);
+	    	
 	}	
 
 	public double fresnel(double n1,double n2,double n3,double d,double l){
@@ -132,6 +142,7 @@ public class generate_LUT implements PlugIn {
 		above=(int)gd.getNextNumber();
 		below=(int)gd.getNextNumber();
 		increment=(int)gd.getNextNumber();
+		
 		
 		return;
 	}
@@ -262,12 +273,15 @@ public class generate_LUT implements PlugIn {
 				ripmma[i][1]=(Float.parseFloat(s[5]));
 			}
 		}
+		tw.dispose();
 	}
 	
 	
 	public double[] irisfun(double start,double p1,double p2){
-		double I1,I2,I3,I4,sirefract,rsivalue,rvalue,s1value,s2value,s3value,s4value,m1,m2,m3,m4;
-		double[] isums={0,0,0,0},msums={0,0,0,0}, m = new double[4], I = new double[4],s = new double[4];
+		double sirefract,rsivalue,rvalue;
+		double[] isums={0,0,0,0},msums={0,0,0,0}, m = new double[4], I = new double[4],s = new double[4],
+				result = new double[4];
+		
 		for(double i=.4;i<.651;i+=0.001){
 			sirefract=interpolate(risi,i,s2);
 			rsivalue=(fresnel(1,1,sirefract,start,i)); //rsi is mirror reflectance in air, so 1 interface means 2 refractive indicies will be the same
@@ -276,19 +290,48 @@ public class generate_LUT implements PlugIn {
 			s[1]=(interpolate(c2,i,s1));
 			s[2]=(interpolate(c3,i,s1));
 			s[3]=(interpolate(c4,i,s1));
-			//IJ.log("RSi: "+rsivalue+" R: "+rvalue);
 			for(int j=0;j<4;j++) {
 				m[j]=((s[j]*rsivalue));
 				I[j]=((s[j]*rvalue));
 				msums[j]+=m[j];
 				isums[j]+=I[j];
-				//IJ.log("S"+j+": "+s[j]+" M"+j+": "+m[j]+" I"+j+": "+I[j]);
-				//IJ.log("m-Sum "+j+": "+msums[j]+" I-sum "+j+":"+isums[j]);
+				IJ.log("S"+j+": "+s[j]+" M"+j+": "+m[j]+" I"+j+": "+I[j]);
+				IJ.log("m-Sum "+j+": "+msums[j]+" I-sum "+j+":"+isums[j]);
 			}
 		}
-		double[] result = {(isums[0]/msums[0]),(isums[1]/msums[1]),(isums[2]/msums[2]),(isums[3]/msums[3])};
-		//IJ.log("fitting params: " +p1+","+p2);
-		double[] result1 = {((result[0]*p1)+p2),((result[1]*p1)+p2),((result[2]*p1)+p2),((result[3]*p1)+p2)};
-		return (result1);
+		
+		for(int i=0;i<4;i++) {
+			result[i]=(((isums[i]/msums[i])*p1)+p2);
+			IJ.log(""+result[i]);
+		}
+			
+		return (result);
+	}
+	
+	public int bestColor(double[][] input) {
+		RealMatrix mat = new Array2DRowRealMatrix(input);
+		double[] diffsums = new double[4];
+		int maxind;
+		double max;
+		for(int i=0;i<4;i++) {
+			diffsums[i]=diffsum(mat.getColumn(i));
+		}
+		max = StatUtils.max(diffsums);
+		maxind = ArrayUtils.indexOf(diffsums, max);
+		return maxind;
+	}
+	
+	public double diffsum(double[] in) {
+		double sum=0;
+		for(int i=0;i<in.length-1;i++) {
+			sum+=(in[i+1]-in[i]);
+		}
+		return sum;
+	}
+	
+	private void makeLUT(double[] bestColor, double[] d) {
+		TextWindow lut = new TextWindow("LUT","",400,800);
+		for(int i=0;i<bestColor.length;i++)
+			lut.getTextPanel().appendLine(d[i]+"	"+bestColor[i]);
 	}
 }
