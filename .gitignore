@@ -2,7 +2,13 @@
 .classpath
 .project
 .settings/
- 
+ !*.java
+!*.jar
+!roiMonitor/
+!generateLUT/
+!apply_LUT/
+!Spandex_MavenProject/
+!resources/
 # Intellij
 .idea/
 *.iml
