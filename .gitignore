@@ -2,12 +2,12 @@
 .classpath
 .project
 .settings/
- !*.java
-!*.jar
-!roiMonitor/
-!generateLUT/
-!apply_LUT/
-!Spandex_/
+*.java
+*.jar
+roiMonitor/
+generateLUT/
+apply_LUT/
+Spandex_/
 !resources/
 # Intellij
 .idea/
