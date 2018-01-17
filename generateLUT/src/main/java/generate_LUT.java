@@ -3,7 +3,6 @@ import ij.ImagePlus;
 import ij.gui.GenericDialog;
 import ij.gui.Roi;
 import ij.gui.Toolbar;
-import ij.plugin.ImageCalculator;
 import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 import ij.text.TextPanel;
@@ -24,60 +23,53 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import org.apache.commons.math3.fitting.*;
+import org.apache.commons.math3.fitting.leastsquares.MultivariateJacobianFunction;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
-import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.stat.StatUtils;
-import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.commons.math3.util.FastMath;
-import org.apache.commons.math3.analysis.*;
 import org.apache.commons.math3.complex.Complex;
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 
 public class generate_LUT implements PlugIn {
 	public ImagePlus imp;
 	public boolean canContinue,didCancel;
 	public int s1=2501,s2=129,s2p=101,thickness,above,below,increment;
-	public double[] filmavgs = new double[4],refavgs = new double[4],ydata1 = new double[4];
+	public double[] filmavgs = new double[4],refavgs = new double[4],ydata = new double[4],xdata = new double[4];
 	public double[][] c1 = new double[2501][2],c2 = new double[2501][2],c3 = new double[2501][2],c4 = new double[2501][2],
 			risi = new double[129][2],risio2 = new double[101][2],ripmma = new double[101][2];
-	public ArrayList<Float> univ = new ArrayList<Float>();
 	public ArrayList<double[][]> cs =  new ArrayList<double[][]>();
 	public JFrame roiguide;
 	public WeightedObservedPoints points = new WeightedObservedPoints();
 	public JLabel refLabel,filmLabel;
-	SimpleRegression sr = new SimpleRegression(true);
 
 
 	public void run(String arg){
 		imp = IJ.getImage();
 
         if(!(imp.getNChannels()==4)||!(imp.getNFrames()==1)) IJ.error("Use 4 channel, single frame image!");
+        
         getRef();
         loaddata();
         getParams();
-        ydata1=irisfun(((double)(thickness))/1000,1,0);
+
+        ydata=irisfun(((double)(thickness))/1000,1,0);
         
         for(int i=0;i<4;i++){
-        	sr.addData(filmavgs[i]/refavgs[i],ydata1[i]);
-        	IJ.log(""+(filmavgs[i]/refavgs[i])+" "+ydata1[i]);
+        	xdata[i]=(filmavgs[i]/refavgs[i]);
         }
 
         
-		//start by getting fit params for irisfun
-		//for d (start)+/-(look above/below)
-		// calculate I = sum((R*s)^2)/sum((rSi*s)^2)
-		//lut will be [d I]?
-        
-        
-	    
         double[][] ic = new double[(above+below)+1][4];
-        double[] d = new double[(above+below)+1], p = {sr.getSlope(),sr.getIntercept()};
+        double[] d = new double[(above+below)+1];
         int ct=0;
-        IJ.log("m: "+p[0]+" b: "+p[1]);
-        /*
+        
+        
 	    for(double i=(thickness-below);i<=(thickness+above);i+=increment) {
 	    	double[] values = new double[4];
-        	values=irisfun((i/1000),p[0],p[1]);
+        	values=irisfun((i/1000),1,0);
         	for(int j=0;j<4;j++) {
         		ic[ct][j]=values[j];
         	}
@@ -96,7 +88,7 @@ public class generate_LUT implements PlugIn {
 		int bestc = bestColor(ic);
 		
 	    makeLUT(mat.getColumn(bestc),d);
-	    */
+	    
 	}	
 
 	public double fresnel(double n1,double n2,double n3,double d,double l){
@@ -310,8 +302,8 @@ public class generate_LUT implements PlugIn {
 	}
 	
 	
-	public double[] irisfun(double start,double p1,double p2){
-		double sirefract,sirefract2,sio2refract,rsivalue,rvalue,m,s,I,isum,msum;
+	public double[] irisfun(double start,double m,double b){
+		double sirefract,sirefract2,sio2refract,rsivalue,rvalue,s;
 		double[] result = {0,0,0,0}, im = new double[251], mir = new double[251];
 		
 		for(int j=0;j<4;j++) {
@@ -328,20 +320,18 @@ public class generate_LUT implements PlugIn {
 					mir[ct]=FastMath.pow(((s)*rsivalue),2);
 					im[ct]=FastMath.pow(((s)*rvalue),2);
 				}else {
-					m=0;
-					I=0;
+					mir[ct]=0;
+					im[ct]=0;
 				}
 				ct++;
-				IJ.log(""+i+" "+rvalue+" "+rsivalue+" "+s);
 			}
 			result[j] = ((StatUtils.sum(im))/(StatUtils.sum(mir)));
+			IJ.log(" "+result[j]);
+			result[j] = ((result[j]*m) + b);
+			IJ.log(" "+result[j]);
 		}
 		
-		IJ.log(" "+result[0]+" "+result[1]+" "+result[2]+" "+result[3]);
-		
-		double[] result1 = {((result[0]*p1)+p2),((result[1]*p1)+p2),((result[2]*p1)+p2),((result[3]*p1)+p2)};
-		
-		return (result1);
+		return (result);
 		
 	}
 	
@@ -387,6 +377,4 @@ public class generate_LUT implements PlugIn {
 
 		return (FastMath.sqrt((A)+(B/(1-(C/FastMath.pow(lambda,2))))+(D/(1-(E/FastMath.pow(lambda,2))))));
 	}
-	
-	
 }
