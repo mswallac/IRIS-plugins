@@ -2,8 +2,6 @@
 .classpath
 .project
 .settings/
-*.java
-*.jar
 roiMonitor/
 generateLUT/
 apply_LUT/
