@@ -43,7 +43,7 @@ public class apply_LUT implements PlugIn {
         TextPanel tp = tw.getTextPanel();
         
         for(int i=1;i<=tp.getLineCount()-1;i++){
-        	String s[] = tp.getLine(i).split(", ");
+        	String s[] = tp.getLine(i).split("    ");
         	r.add(Float.parseFloat(s[0]));
         	h.add(Float.parseFloat(s[1]));
         }
