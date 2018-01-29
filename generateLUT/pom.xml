@@ -14,7 +14,7 @@
 
 	<groupId>OCN</groupId>
 	<artifactId>generate_LUT</artifactId>
-	<version>1.0-WIP</version>
+	<version>1.0</version>
 
 	<name>Generate LUT</name>
 	<description>A plugin which generates a lookup table given a 4 channel image</description>
