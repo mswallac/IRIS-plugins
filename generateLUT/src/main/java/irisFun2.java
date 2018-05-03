@@ -1,18 +1,28 @@
+
 import org.apache.commons.math3.analysis.differentiation.FiniteDifferencesDifferentiator;
 import org.apache.commons.math3.analysis.differentiation.UnivariateDifferentiableVectorFunction;
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
+import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoints;
 import org.apache.commons.math3.fitting.leastsquares.MultivariateJacobianFunction;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 import org.apache.commons.math3.stat.StatUtils;
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.commons.math3.util.FastMath;
 import org.apache.commons.math3.util.Pair;
+
+import ij.IJ;
 
 public class irisFun2 implements MultivariateJacobianFunction {
 	public int t;
 	public double thickness;
 	public IrisUtils iu;
+	public PolynomialFunction[] diffm = new PolynomialFunction[4],diffb = new PolynomialFunction[4];
+	public final WeightedObservedPoints mdata = new WeightedObservedPoints(),bdata = new WeightedObservedPoints();
+	
 	
 	public irisFun2(IrisUtils in1,double temp,double d) {
 		iu=in1;
@@ -43,7 +53,7 @@ public class irisFun2 implements MultivariateJacobianFunction {
 				sirefract2=iu.SiRI(i,t);
 				filmr=iu.getFilm(i,t);
 				medr=iu.getMedium(i,t);
-				rsivalue=(iu.fresnel(medr,medr,sirefract,start,i));
+				rsivalue=(iu.fresnel(1,1,sirefract,start,i));
 				rvalue=(iu.fresnel(medr,filmr,sirefract2,start,i));
 				s=(iu.interpolateLED(j,i));
 				s=(FastMath.sqrt(s));
@@ -65,15 +75,9 @@ public class irisFun2 implements MultivariateJacobianFunction {
 	}
 	
 	public RealMatrix getJacobian(double[] in) {
-		irisM irism = new irisM(iu,t,thickness,in[1]);
-		irisB irisb = new irisB(iu,t,thickness,in[0]);
-		FiniteDifferencesDifferentiator diff = new FiniteDifferencesDifferentiator(3, .25);
-		UnivariateDifferentiableVectorFunction irisdm = diff.differentiate(irism);
-		UnivariateDifferentiableVectorFunction irisdb = diff.differentiate(irisb);
-		double[] mvals = irisdm.value(in[0]),bvals = irisdb.value(in[1]);
 		final RealMatrix jacobian = new Array2DRowRealMatrix(4,2);
-		jacobian.setColumn(0, mvals);
-		jacobian.setColumn(1, bvals);
+		jacobian.setColumn(0, irisfxn(thickness,in[0],in[1]));
+		jacobian.setColumn(1, new double[] {1,1,1,1});
 		return jacobian;
 		
 	}

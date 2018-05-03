@@ -1,8 +1,10 @@
+
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
 import ij.gui.Roi;
 import ij.gui.Toolbar;
+import ij.plugin.ImageCalculator;
 import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 import ij.text.TextWindow;
@@ -21,6 +23,8 @@ import javax.swing.JPanel;
 
 import org.apache.commons.math3.linear.*;
 import org.apache.commons.math3.optim.ConvergenceChecker;
+import org.apache.commons.math3.optimization.DifferentiableMultivariateVectorMultiStartOptimizer;
+import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.util.FastMath;
 import org.apache.commons.math3.util.Precision;
@@ -40,8 +44,8 @@ public class generate_LUT implements PlugIn {
 	public double[] filmavgs = new double[4],refavgs = new double[4],ydata = new double[4],xdata = new double[4];
 	public JFrame roiguide;
 	public JLabel refLabel,filmLabel;
-	public String mthd;
-	IrisUtils iu;
+	public String mthd,med,film;
+	public static IrisUtils iu;
 
 
 	public void run(String arg){
@@ -50,20 +54,20 @@ public class generate_LUT implements PlugIn {
         
         getRef();
         getParams();
-        
         for(int i=0;i<4;i++){
         	ydata[i]=(filmavgs[i]/refavgs[i]);
+        	IJ.log(""+ydata[i]);
         }
-        
         final RealVector obs = new ArrayRealVector(ydata);
-        ConvergenceChecker<LeastSquaresProblem.Evaluation> cc = new EvaluationRmsChecker(.001);
-        final int eval=10000000;
-        final int iter=1000;
-        double[] guessa = {(((double)(thickness))/1000),1.2,.5},guessr = {1,0};
+        ConvergenceChecker<LeastSquaresProblem.Evaluation> cc = new EvaluationRmsChecker(.0001);
+        final int eval=100000000;
+        final int iter=100000;
+        double[] guessa = {(((double)(thickness))/1000),1,0},guessr = {1,0};
         
         MultivariateJacobianFunction fn;
         LeastSquaresProblem lsqprob = null;
-        
+        final IrisUtils iu1 = new IrisUtils(med,film,(double)temp,(((double)(thickness))/1000));
+        iu = iu1;
         if(mthd=="Relative") {
         	final RealVector start = new ArrayRealVector(guessr);
         	fn = new irisFun2(iu,temp,guessa[0]);
@@ -91,7 +95,6 @@ public class generate_LUT implements PlugIn {
             	values=irisfxn((thickness+i)/1000,coeff[0],coeff[1],temp);
             	for(int j=0;j<4;j++) {
             		ic[ct][j]=values[j];
-            		IJ.log(""+values[j]);
             	}
             	d[ct] = (thickness+i);
             	ct++;
@@ -102,7 +105,6 @@ public class generate_LUT implements PlugIn {
             	values=irisfxn((coeff[0]+i/1000),coeff[1],coeff[2],temp);
             	for(int j=0;j<4;j++) {
             		ic[ct][j]=values[j];
-            		IJ.log(""+values[j]);
             	}
             	d[ct] = (coeff[0]+i/1000)*1000;
             	ct++;
@@ -112,8 +114,7 @@ public class generate_LUT implements PlugIn {
 		RealMatrix mat = new Array2DRowRealMatrix(ic);
 		int bestc = bestColor(ic);
 		
-	    makeLUT(mat.getColumn(bestc),d);
-	    
+	    makeLUT(mat.getColumn(bestc),d,bestc);
 	}	
 
 
@@ -141,10 +142,8 @@ public class generate_LUT implements PlugIn {
 		increment=(int)gd.getNextNumber();
 		temp=(int)gd.getNextNumber();
 		mthd = gd.getNextChoice();
-		String med = gd.getNextChoice();
-		String film = gd.getNextChoice();
-		
-		iu = new IrisUtils(med,film);
+		med = gd.getNextChoice();
+		film = gd.getNextChoice();
 		
 		return;
 	}
@@ -256,7 +255,7 @@ public class generate_LUT implements PlugIn {
 				sirefract2=iu.SiRI(i,temp);
 				filmr=iu.getFilm(i,temp);
 				medr=iu.getMedium(i,temp);
-				rsivalue=(iu.fresnel(medr,medr,sirefract,start,i));
+				rsivalue=(iu.fresnel(1,1,sirefract,start,i));
 				rvalue=(iu.fresnel(medr,filmr,sirefract2,start,i));
 				s=(iu.interpolateLED(j,i));
 				s=(FastMath.sqrt(s));
@@ -300,8 +299,8 @@ public class generate_LUT implements PlugIn {
 		return sum;
 	}
 	
-	public void makeLUT(double[] bestColor, double[] d) {
-		TextWindow lut = new TextWindow("LUT","",400,800);
+	public void makeLUT(double[] bestColor, double[] d,int bestc) {
+		TextWindow lut = new TextWindow("LUT-Channel_"+(bestc+1),"",400,800);
 		for(int i=0;i<bestColor.length;i++)
 			lut.getTextPanel().appendLine(d[i]+"    "+bestColor[i]);
 	}

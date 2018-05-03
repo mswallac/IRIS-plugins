@@ -1,3 +1,4 @@
+
 import org.apache.commons.math3.analysis.UnivariateVectorFunction;
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.util.FastMath;
@@ -31,7 +32,7 @@ public class irisM implements UnivariateVectorFunction {
 				sirefract2=iu.SiRI(i,t);
 				filmr=iu.getFilm(i,t);
 				medr=iu.getMedium(i,t);
-				rsivalue=(iu.fresnel(medr,medr,sirefract,start,i));
+				rsivalue=(iu.fresnel(1,1,sirefract,start,i));
 				rvalue=(iu.fresnel(medr,filmr,sirefract2,start,i));
 				s=(iu.interpolateLED(j,i));
 				s=(FastMath.sqrt(s));

@@ -1,8 +1,12 @@
+
 import java.util.ArrayList;
 
 import org.apache.commons.math3.analysis.solvers.*;
 import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.util.FastMath;
+
+import ij.IJ;
 import ij.text.TextPanel;
 import ij.text.TextWindow;
 
@@ -11,11 +15,13 @@ public class IrisUtils {
 	public ArrayList<double[][]> cs =  new ArrayList<double[][]>();
 	public ArrayList<double[][]> rs =  new ArrayList<double[][]>();
 	public String med,film;
-
+	public double tmp,thickness;
 	
-	public IrisUtils(String in1,String in2) {
+	public IrisUtils(String in1,String in2, double temp, double thick) {
 		med=in1;
 		film=in2;
+		tmp=temp;
+		thickness=thick;
 		loaddata();
 	}
 	
@@ -135,12 +141,11 @@ public class IrisUtils {
 	}
 
 	public double waterRI(double lambda, double temp) {
-		/*double nWater;
+		double nWater;
 		waterRI wri = new waterRI(temp,lambda);
 		IllinoisSolver is = new IllinoisSolver();
-		nWater = is.solve(100000, wri, 1, 2, 1.33);
-		return nWater;*/
-		return 1.33;
+		nWater = (is.solve(1000000, wri,1,2,0));
+		return nWater;
 	}
 	
 	public double SiO2RI(double lambda,double T) {

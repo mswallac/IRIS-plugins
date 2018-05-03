@@ -1,12 +1,9 @@
 /*
- * To the extent possible under law, the ImageJ developers have waived
- * all copyright and related or neighboring rights to this tutorial code.
- *
- * See the CC0 1.0 Universal license for details:
- *     http://creativecommons.org/publicdomain/zero/1.0/
+ * apply_LUT by Michael Wallace
+ * 
+ * Template from IJ Process Pixels Plugin
  */
 
-import java.util.ArrayList;
 import ij.IJ;
 import ij.io.*;
 import ij.ImagePlus;
@@ -17,12 +14,9 @@ import ij.text.TextPanel;
 import ij.text.TextWindow;
 
 public class apply_LUT implements PlugIn {
-
 	public ImagePlus imp;
 	public ResultsTable lut;
 	public int ind;
-    public ArrayList<Float> r = new ArrayList<Float>();
-    public ArrayList<Float> h = new ArrayList<Float>();
     public boolean oobret;
 	
 	public void run(String arg) {
@@ -32,54 +26,58 @@ public class apply_LUT implements PlugIn {
         	return;
         }
 		int stacks = imp.getStackSize();
-		
+		//ask for LUT path
         OpenDialog LUT = new OpenDialog("Load a LUT File.");
         while(LUT.getPath()==null){
         	IJ.wait(200);
         }
+        //Load LUT into text window
     	String path = LUT.getPath();
-    	
         TextWindow tw = new TextWindow(path,100,300);
         TextPanel tp = tw.getTextPanel();
-        
+        // Read LUT values
+        int lutlen = tp.getLineCount();
+        float[][] lut = new float[lutlen][2];
         for(int i=1;i<=tp.getLineCount()-1;i++){
         	String s[] = tp.getLine(i).split("    ");
-        	r.add(Float.parseFloat(s[0]));
-        	h.add(Float.parseFloat(s[1]));
-        }
-        tw.dispose();
+        	lut[i][1]=Float.parseFloat(s[0]);
+        	lut[i][0]=Float.parseFloat(s[1]);
+        	}
+        tw.dispose(); // Close window
         
     	int lw[]=imp.getDimensions();
         float pixels[][] = null;
+        //interpolate from normalized intensity to height based on the loaded lookup table for all pixels/frames
         for(int i=1;i<=stacks;i++){
+        	IJ.showProgress(i, stacks);
+        	IJ.showStatus("Applying LUT: "+"("+i+"/"+stacks+")");
         	imp.setSlice(i);
         	pixels=imp.getProcessor().getFloatArray();
         	for(int j=0;j<lw[0];j++)
         		for(int k=0;k<lw[1];k++){
-        			pixels[j][k]=interpolateLUT(pixels,pixels[j][k],j,k);
+        			pixels[j][k]=interpolate(lut,pixels[j][k],lutlen);
         		}
             imp.getProcessor().setFloatArray(pixels);
         }
+        // update and draw new height map
         imp.updateAndDraw();
 	}
-	public float interpolateLUT(float pixels[][],float input,int j,int k){
-		for(int i=0;i<r.size()-1;i++){
-			if(input>r.get(i) && input<r.get(i+1)) ind=i;
-			if((i==r.size()-2)&&(r.get(i+1)<input)) oobret=true;
+	// basic interpolation function--returns 0 in the event there are no data point pairs that given value is between
+	public float interpolate(float data[][],float input, int size){
+		int ind=-1;
+		for(int i=0;i<size-1;i++){
+			if(input>data[i][0] && input<data[i+1][0])
+				ind=i;
 		}
-		float x1 = r.get(ind);
-		float x2 = r.get(ind+1);
-		float y1 = h.get(ind);
-		float y2 = h.get(ind+1);
-		float result=(((y2-y1)/(x2-x1))*(input-x1))+y1;
-		if(oobret){
-			oobret=false;
-			return 0;
+
+		if(ind!=-1){
+			float x1 = data[ind][0];
+			float x2 = data[ind+1][0];
+			float y1 = data[ind][1];
+			float y2 = data[ind+1][1];
+			return ((((y2-y1)/(x2-x1))*(input-x1))+y1);
 		}else {
-			return result;
+			return 0;
 		}
-	}
-	public void outOfBounds(int j,int k,float pixels[][]){
-		pixels[j][k]=0;
 	}
 }

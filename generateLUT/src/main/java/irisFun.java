@@ -1,25 +1,55 @@
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.apache.commons.math3.analysis.differentiation.FiniteDifferencesDifferentiator;
 import org.apache.commons.math3.analysis.differentiation.UnivariateDifferentiableVectorFunction;
+import org.apache.commons.math3.analysis.polynomials.PolynomialFunction;
 import org.apache.commons.math3.complex.Complex;
+import org.apache.commons.math3.fitting.PolynomialCurveFitter;
+import org.apache.commons.math3.fitting.WeightedObservedPoint;
+import org.apache.commons.math3.fitting.WeightedObservedPoints;
 import org.apache.commons.math3.fitting.leastsquares.MultivariateJacobianFunction;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.ArrayRealVector;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
 import org.apache.commons.math3.stat.StatUtils;
+import org.apache.commons.math3.stat.regression.SimpleRegression;
 import org.apache.commons.math3.util.FastMath;
 import org.apache.commons.math3.util.Pair;
 
+import ij.IJ;
+
 public class irisFun implements MultivariateJacobianFunction {
 	public int t;
-	public double temp;
+	public double tmp;
 	public IrisUtils iu;
+	public boolean set=false;
+	public PolynomialFunction[] diffd = new PolynomialFunction[4], diffm = new PolynomialFunction[4],diffb = new PolynomialFunction[4];
+	public final WeightedObservedPoints mdata = new WeightedObservedPoints(),bdata = new WeightedObservedPoints(),ddata = new WeightedObservedPoints();
 	
 	public irisFun(IrisUtils in1,double temp) {
-		iu=in1;
-		t=(int)temp;
+		this.iu=in1;
+		tmp=temp;
 	}
 	
+	private void setDiff(double[] in) {
+		PolynomialCurveFitter pcf = PolynomialCurveFitter.create(0).withStartPoint(new double[] {10e5,-8e6,3e5,-5e4});
+		pcf.withMaxIterations(1000);
+		for(int j=0;j<4;j++) {
+			double[] y = new double[4];
+			for(double d=.08;d<=0.22;d+=0.00056) {
+				y = irisfxn(d,in[1],in[2]);
+				ddata.add(d, y[j]);
+			}
+			PolynomialFunction df = new PolynomialFunction(pcf.fit(ddata.toList()));
+			diffd[j] = df.polynomialDerivative();
+		}
+		
+	}
+
 	public Pair<RealVector, RealMatrix> value(RealVector in) {
 		double[] din = in.toArray(),y = new double[4];
 		y = irisfxn(din[0], din[1], din[2]);
@@ -40,10 +70,10 @@ public class irisFun implements MultivariateJacobianFunction {
 			int ct=0;
 			for(double i=.4;i<.651;i+=0.001){
 				sirefract=iu.interpolateSI(i);
-				sirefract2=iu.SiRI(i,temp);
-				filmr=iu.getFilm(i,temp);
-				medr=iu.getMedium(i,temp);
-				rsivalue=(iu.fresnel(medr,medr,sirefract,start,i));
+				sirefract2=iu.SiRI(i,tmp);
+				filmr=iu.getFilm(i,tmp);
+				medr=iu.getMedium(i,tmp);
+				rsivalue=(iu.fresnel(1,1,sirefract,start,i));
 				rvalue=(iu.fresnel(medr,filmr,sirefract2,start,i));
 				s=(iu.interpolateLED(j,i));
 				s=(FastMath.sqrt(s));
@@ -65,17 +95,19 @@ public class irisFun implements MultivariateJacobianFunction {
 	}
 	
 	public RealMatrix getJacobian(double[] in) {
-		irisD irisd = new irisD(iu,t,in[1],in[2]);
-		irisM irism = new irisM(iu,t,in[0],in[2]);
-		irisB irisb = new irisB(iu,t,in[0],in[1]);
-		FiniteDifferencesDifferentiator diff = new FiniteDifferencesDifferentiator(5, .25);
-		UnivariateDifferentiableVectorFunction irisdd = diff.differentiate(irisd),
-				irisdm = diff.differentiate(irism), irisdb = diff.differentiate(irisb);
-		double[] dvals = irisdd.value(in[0]),mvals = irisdm.value(in[1]),bvals = irisdb.value(in[2]);
+		if(!set) {
+			setDiff(in);
+			set=true;
+		}
+		double[] dvals = new double[4];
+		for(int i=0;i<4;i++) {
+			dvals[i]=(diffd[i]).value(in[0]);
+		}
+    	IJ.log("D: "+dvals[0]+" "+dvals[1]+" "+dvals[2]+" "+dvals[3]);
 		final RealMatrix jacobian = new Array2DRowRealMatrix(4,3);
 		jacobian.setColumn(0, dvals);
-		jacobian.setColumn(1, mvals);
-		jacobian.setColumn(2, bvals);
+		jacobian.setColumn(1, irisfxn(in[0],in[1],in[2]));
+		jacobian.setColumn(2, new double[] {1,1,1,1});
 		return jacobian;
 		
 	}
