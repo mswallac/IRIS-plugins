@@ -17,6 +17,7 @@ public class IrisUtils {
 	public String med,film;
 	public double tmp,thickness;
 	
+	//take data from user inputs in main plugin
 	public IrisUtils(String in1,String in2, double temp, double thick) {
 		med=in1;
 		film=in2;
@@ -25,9 +26,11 @@ public class IrisUtils {
 		loaddata();
 	}
 	
+	//load data we need for later calculations from text files and store  in structures
 	public void loaddata(){
 		double[][] c1 = new double[2501][2],c2 = new double[2501][2],c3 = new double[2501][2],c4 = new double[2501][2],
 				risi = new double[129][2],risio2 = new double[101][2],ripmma = new double[101][2];
+		//PATH TO LOAD LED SPECTRA -- CHANGE THIS WHEN LEDs CHANGE
 		TextWindow tw = new TextWindow("E:/OCN/ledspectra.txt",1,1);
 		TextPanel tp = tw.getTextPanel();
 
@@ -70,6 +73,7 @@ public class IrisUtils {
 		tw.dispose();
 	}
 	
+	//fresnel equation to return reflectance
 	public double fresnel(double n1,double n2,double n3,double d,double l){
 		double r0,r1,D,req=0;
 		r0=(n1-n2)/(n1+n2);
@@ -87,7 +91,7 @@ public class IrisUtils {
 		return req;
 	}
 	
-	
+	//specialized interpolation functions for differently formatted data
 	public double interpolateLED(int j, double i) {
 		return interpolate(cs.get(j),i,s1);
 	}
@@ -96,7 +100,7 @@ public class IrisUtils {
 		return interpolate(rs.get(0),i,s2);
 	}
 
-
+	//calculate refractive index of Silicon
 	public double SiRI(double lambda,double temp) {
 		double[] wavelengths={0.2638,0.2652,0.2666,0.2681,0.2695,0.2710,0.2725,0.2740,0.2755,0.2771,0.2786,0.2802,0.2818,0.2834,0.2850,0.2867,0.2883,0.2900,0.2917,0.2935,0.2952,0.2970,0.2988,0.3006,0.3024,0.3043,0.3061,0.3080,0.3100,0.3119,0.3139,0.3159,0.3179,0.3200,0.3220,0.3241,0.3263,0.3284,0.3306,0.3328,0.3351,0.3374,0.3397,0.3420,0.3444,0.3468,0.3493,0.3517,0.3542,0.3568,0.3594,0.3620,0.3647,0.3674,0.3701,0.3729,0.3757,0.3786,0.3815,0.3844,0.3875,0.3905,0.3936,0.3967,0.3999,0.4032,0.4065,0.4099,0.4133,0.4168,0.4203,0.4239,0.4275,0.4312,0.4350,0.4389,0.4428,0.4468,0.4509,0.4550,0.4592,0.4635,0.4679,0.4723,0.4769,0.4815,0.4862,0.4910,0.4959,0.5009,0.5061,0.5113,0.5166,0.5220,0.5276,0.5333,0.5391,0.5450,0.5510,0.5572,0.5636,0.5700,0.5767,0.5835,0.5904,0.5975,0.6048,0.6123,0.6199,0.6278,0.6358,0.6441,0.6525,0.6612,0.6702,0.6794,0.6888,0.6985,0.7085,0.7187,0.7293,0.7402,0.7514,0.7630,0.7749,0.7872,0.7999,0.8130,0.8266},
 				n20={1.8250,1.8540,1.8990,1.9540,2.0140,2.0990,2.1880,2.2930,2.4260,2.5740,2.7230,2.8770,3.0370,3.2320,3.4060,3.6680,3.9260,4.2050,4.4540,4.6590,4.7910,4.8850,4.9280,4.9850,4.9860,5.0090,5.0250,5.0240,5.0290,5.0340,5.0390,5.0350,5.0320,5.0510,5.0680,5.0660,5.0910,5.1200,5.1350,5.1590,5.1770,5.2180,5.2470,5.2770,5.3100,5.3630,5.4290,5.4870,5.6010,5.7520,5.9670,6.2510,6.5630,6.8210,6.9890,7.0040,6.8990,6.7350,6.5480,6.3690,6.1910,6.0410,5.8970,5.7640,5.6490,5.5430,5.4500,5.3560,5.2790,5.1970,5.1260,5.0560,4.9940,4.9330,4.8720,4.8250,4.7700,4.7220,4.6770,4.6310,4.5910,4.5490,4.5100,4.4710,4.4350,4.4020,4.3680,4.3370,4.3090,4.2810,4.2520,4.2240,4.2000,4.1770,4.1530,4.1310,4.1090,4.0890,4.0680,4.0490,4.0290,4.0120,3.9950,3.9770,3.9600,3.9441,3.9291,3.9144,3.9000,3.8860,3.8723,3.8589,3.8450,3.8330,3.8205,3.8084,3.7960,3.7851,3.7739,3.7631,3.7530,3.7423,3.7324,3.7228,3.7160,3.7046,3.6960,3.6877,3.6780},
@@ -106,7 +110,8 @@ public class IrisUtils {
 		return (interpolate2(temps,nvals,temp,2));
 	}
 	
-	public double getFilm(double lambda,double temp) {
+	//get refractive index of media and film
+	public double getMedium(double lambda,double temp) {
 		double r=0;
 		if(med=="Water") {
 			r = waterRI(lambda,temp);
@@ -116,7 +121,7 @@ public class IrisUtils {
 		return r;
 	}
 	
-	public double getMedium(double lambda,double temp) {
+	public double getFilm(double lambda,double temp) {
 		double r=0;
 		if(film=="SiO2") {
 			r = SiO2RI(lambda,temp);
@@ -126,6 +131,7 @@ public class IrisUtils {
 		return r;
 	}
 	
+	//specific calculations for film and media refractive indices
 	private double pmmaRI(double lambda, double temp) {
 		double Tref,dndT,deltaN,nRef,nPMMA;
 		double[][] RIs;
@@ -155,7 +161,7 @@ public class IrisUtils {
 		return (FastMath.sqrt((A)+(B/(1-(C/FastMath.pow(lambda,2))))+(D/(1-(E/FastMath.pow(lambda,2))))));
 	}
 	
-
+	//interpolation functions
 	public double interpolate(double data[][],double input, int size){
 		int ind=-1;
 

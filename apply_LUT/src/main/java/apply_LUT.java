@@ -20,21 +20,25 @@ public class apply_LUT implements PlugIn {
     public boolean oobret;
 	
 	public void run(String arg) {
+		// get and check for image, return if there is none, otherwise, take stack size
 		imp = WindowManager.getCurrentImage();
         if (imp==null){
-        	IJ.noImage(); // get and check for image, return if there is none
+        	IJ.noImage(); 
         	return;
         }
 		int stacks = imp.getStackSize();
+		
 		//ask for LUT path
         OpenDialog LUT = new OpenDialog("Load a LUT File.");
         while(LUT.getPath()==null){
         	IJ.wait(200);
         }
+        
         //Load LUT into text window
     	String path = LUT.getPath();
         TextWindow tw = new TextWindow(path,100,300);
         TextPanel tp = tw.getTextPanel();
+        
         // Read LUT values
         int lutlen = tp.getLineCount();
         float[][] lut = new float[lutlen][2];
@@ -42,12 +46,14 @@ public class apply_LUT implements PlugIn {
         	String s[] = tp.getLine(i).split("    ");
         	lut[i][1]=Float.parseFloat(s[0]);
         	lut[i][0]=Float.parseFloat(s[1]);
-        	}
-        tw.dispose(); // Close window
+        }
         
+        // Close window
+        tw.dispose(); 
+        
+        //interpolate from normalized intensity to height based on the loaded lookup table for all pixels/frames
     	int lw[]=imp.getDimensions();
         float pixels[][] = null;
-        //interpolate from normalized intensity to height based on the loaded lookup table for all pixels/frames
         for(int i=1;i<=stacks;i++){
         	IJ.showProgress(i, stacks);
         	IJ.showStatus("Applying LUT: "+"("+i+"/"+stacks+")");
@@ -59,10 +65,12 @@ public class apply_LUT implements PlugIn {
         		}
             imp.getProcessor().setFloatArray(pixels);
         }
+        
         // update and draw new height map
         imp.updateAndDraw();
 	}
-	// basic interpolation function--returns 0 in the event there are no data point pairs that given value is between
+	
+	// basic interpolation function--returns 0 in the event there are no points that given value is between
 	public float interpolate(float data[][],float input, int size){
 		int ind=-1;
 		for(int i=0;i<size-1;i++){

@@ -50,11 +50,12 @@ public class roim
         	return;
        	}
     	
+        //input for number of spots
     	GenericDialog gd = new GenericDialog("Region of Interest Monitor");
     	gd.addNumericField("Choose number of spots: ", 1, 1);
     	gd.showDialog();
-		if (gd.wasCanceled())
-			return;
+		if (gd.wasCanceled()) return;
+		//get spot number and calculate number of ROIs correspondingly
     	spotno=gd.getNextNumber();
     	roino=(3+((spotno-1)*2));
     	
@@ -65,10 +66,9 @@ public class roim
 	    	overlay.drawLabels(true);
 	    	overlay.drawNames(true);
 	    	imp.setOverlay(overlay);
-	    	if(!roiSelector(imp)) 
-	    		return;
+	    	if(!roiSelector(imp)) return;
     	}else {
-    		current=(int) roino;
+    		current=(int)roino;
     	}
     	
     	timer = new StopWatch();
@@ -79,23 +79,28 @@ public class roim
             return;
         }
         
-        ImageProcessor ip = getPlot();  // get image processor of plot
+        //get image processor of plot
+        ImageProcessor ip = getPlot();  
         
-        if (ip==null) {                     // check if successful
+        //check if successful
+        if (ip==null) {                     
             IJ.error("ROI Monitor","Data acquisition failed."); return;
         }
-                                            // new plot window
+        
+        // new plot window
         plotImage = new ImagePlus("Intensity of "+imp.getShortTitle(), ip);
         plotImage.show();
         IJ.wait(50);
         positionPlotWindow();
-                                            // thread for plotting in the background
+        
+        // thread for plotting in the background
         bgThread = new Thread(this, "Intensity Monitoring");
         bgThread.setPriority(Math.max(bgThread.getPriority()-3, Thread.MIN_PRIORITY));
         bgThread.start();
         createListeners();
     }
     
+    //checks that the overlay contains the right number of regions of interest based on initial user input
     public boolean checkoverlay(ImagePlus imp) {
     	Overlay test = imp.getOverlay();
     	int a;
@@ -104,7 +109,7 @@ public class roim
     		a = test.size();
     		return (a==roino);
     	}else {
-    		return (false); // doesnt check names for now, will just look at number of rois
+    		return (false); // does not check names for now, will just look at number of ROIs
     	}
     	}
 
@@ -115,7 +120,7 @@ public class roim
 		selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 		imp.getWindow().toFront();
 		IJ.setTool(Toolbar.RECTANGLE);
-		
+		//initialize buttons used for adding regions of interest
 		referenceButton = new JButton("Add reference region");
 		referenceButton.setEnabled(true);
 		referenceButton.addActionListener(new ActionListener(){
@@ -163,7 +168,7 @@ public class roim
 			}
 		});
 		buttonPanel.add(cancelButton);
-		
+		//add OK button and behavior
 		JButton okButton = new JButton("OK");
 		okButton.setEnabled(true);
 		okButton.addActionListener(new ActionListener(){
@@ -202,6 +207,7 @@ public class roim
 		return !didCancel; // if user pressed cancel return false
 	}
     
+    //function checks the addition of each ROI (for the reference region)
     public void refDefine(){
     	if(imp.getRoi()==null){
             IJ.error("ROI Monitor","Please select the reference region."); return;
@@ -219,6 +225,7 @@ public class roim
     	imp.killRoi();
     }
     
+    //function checks the addition of each ROI (for the background)
     public void brDefine(){
     	if(imp.getRoi()==null){
             IJ.error("ROI Monitor","Please select a background region"); return;
@@ -235,8 +242,9 @@ public class roim
 			backgroundButton.setEnabled(false);
 		}
     	imp.killRoi();
-    	}
+    }
     
+    //function checks the addition of each ROI (for the actual spot)
     public void spotDefine(){
     	if(imp.getRoi()==null){
             IJ.error("ROI Monitor","Please select a spot."); return;
@@ -335,16 +343,19 @@ public class roim
         plotImage.removeImageListener(this);
     }
 
-    /** Place the plot window to the right of the image window */
+    /** Place the plot window to the right of the image window (positionPlotWindow() is TAKEN FROM IMAGEJ PROFILE PLOT FUNCTION) */
     void positionPlotWindow() {
         IJ.wait(500);
+        //get plot and image windows
         if (plotImage==null || imp==null) return;
         ImageWindow pwin = plotImage.getWindow();
         ImageWindow iwin = imp.getWindow();
+        //get window dimensions and screen size
         if (pwin==null || iwin==null) return;
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
         Dimension plotSize = pwin.getSize();
         Dimension imageSize = iwin.getSize();
+        //orient windows
         if (plotSize.width==0 || imageSize.width==0) return;
         Point imageLoc = iwin.getLocation();
         int x = imageLoc.x+imageSize.width+10;
@@ -355,19 +366,22 @@ public class roim
         canvas.requestFocus();
     }
 
-    //update plot and give imageprocessor
+    //update plot and give image processor
 	ImageProcessor getPlot() {
         makedata();
+        //plot setup
         String xLabel = "Time (s)";
         String yLabel = "Normalized Intensity";
         Color[] colors = {Color.blue,Color.green,Color.red,Color.cyan,Color.yellow};
     	plot = new Plot("",xLabel,yLabel);
+    	//plot maximum of 5 normalized intensity readings
         for(int i=0;i<5 && i<spotno;i++){
         	plot.setLimits(0, f.get(f.size()-1), min, max);
         	plot.setColor(colors[i]);
         	plot.addPoints(f, data.get((i*3)+3), PlotWindow.LINE);
         	plot.addLabel(0.025, (0.1*i)+0.1, "Spot "+(i+1));
         }
+        //return plot image for display
         return plot.getProcessor();
     }
 
@@ -383,12 +397,15 @@ public class roim
         table.addValue("Reference Intensity",reference);
         data.get(0).add(reference);
         for(int i=0;i<spotno;i++) {
+        	//get intensity data
         	background=takeroimean(overlay.get(overlay.getIndex("Background "+(i+1))));
         	spot=takeroimean(overlay.get(overlay.getIndex("Spot "+(i+1))));
         	normspot=(spot-background)/reference;
+        	//set graph min/max
             if(normspot>max)max=(normspot*1.1);
             if(normspot<min&&normspot>0)min=(normspot*.9);
             if(normspot<min&&normspot<0)min=(normspot*1.1);
+            //add to data structure/table
             data.get((i*3)+1).add(background);
             data.get((i*3)+2).add(spot);
             data.get((i*3)+3).add(normspot);
@@ -401,13 +418,16 @@ public class roim
     }
 
 	public double takeroimean(Roi roi) {
+		//check if we have an image
 		ImagePlus imp = IJ.getImage();
 		if (roi!=null && !roi.isArea()) roi = null;
 		ImageProcessor ip = imp.getProcessor();
 		ImageProcessor mask = roi!=null?roi.getMask():null;
+		//get ROI dimensions
 		Rectangle r = roi!=null?roi.getBounds():new Rectangle(0,0,ip.getWidth(),ip.getHeight());
 		double sum = 0;
 		int count = 0;
+		//take sum of pixel intensities in ROI
 		for(int y=0; y<r.height; y++) {
 			for (int x=0; x<r.width; x++) {
 				if (mask==null||mask.getPixel(x,y)!=0) {
@@ -416,6 +436,7 @@ public class roim
 				}
 			}
 		}
+		//return average intensity
 		return (sum/count);
 		}
 }

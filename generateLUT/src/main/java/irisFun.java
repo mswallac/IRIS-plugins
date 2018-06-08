@@ -21,7 +21,7 @@ import org.apache.commons.math3.util.FastMath;
 import org.apache.commons.math3.util.Pair;
 
 import ij.IJ;
-
+//CLASS FOR ACCURATE SETTING (Calculates thickness (d))
 public class irisFun implements MultivariateJacobianFunction {
 	public int t;
 	public double tmp;
@@ -35,6 +35,7 @@ public class irisFun implements MultivariateJacobianFunction {
 		tmp=temp;
 	}
 	
+	//get jacobian for use with optimization
 	private void setDiff(double[] in) {
 		PolynomialCurveFitter pcf = PolynomialCurveFitter.create(0).withStartPoint(new double[] {10e5,-8e6,3e5,-5e4});
 		pcf.withMaxIterations(1000);
@@ -49,7 +50,8 @@ public class irisFun implements MultivariateJacobianFunction {
 		}
 		
 	}
-
+	
+	//function which returns value for use in optimization
 	public Pair<RealVector, RealMatrix> value(RealVector in) {
 		double[] din = in.toArray(),y = new double[4];
 		y = irisfxn(din[0], din[1], din[2]);
@@ -62,6 +64,7 @@ public class irisFun implements MultivariateJacobianFunction {
 		return v;
 	}
 	
+	//specialized version of iris function for use with fitter
 	public double[] irisfxn(double start,double m,double b){
 		double sirefract,sirefract2,rsivalue,rvalue,s,filmr,medr;
 		double[] result = {0,0,0,0}, im = new double[251], mir = new double[251];
@@ -94,6 +97,7 @@ public class irisFun implements MultivariateJacobianFunction {
 		
 	}
 	
+	//use setDiff data to create jacobian matrix for return
 	public RealMatrix getJacobian(double[] in) {
 		if(!set) {
 			setDiff(in);

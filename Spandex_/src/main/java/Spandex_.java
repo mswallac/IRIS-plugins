@@ -78,20 +78,23 @@ public class Spandex_ implements PlugIn {
 	public void run(String arg) {
 		if (showDialog()) {
 			rawImgPlus = IJ.getImage();
+			//point spread function loading
 			psfp = IJ.getFilePath("Choose PSF File:");
 			psf = IJ.openImage(psfp);
 			psfa = new ImagePlus[1][1];
 			psfa[0][0]=psf;
+			//getting image dimensions
 			imWidth = rawImgPlus.getWidth();
 			imHeight = rawImgPlus.getHeight();
 			zSize = rawImgPlus.getNSlices();
+			//do processing
 			nirImagePlus = performPreProcessing();
 			dispim=findKeyPoints(nirImagePlus.getStack());
+			//if successful filter/show results
 			if(isParticle){
-			filterKeyPoints();
-			displayResults();
+				filterKeyPoints();
+				displayResults();
 			}
-			
 		}
 		
 
@@ -104,7 +107,7 @@ public class Spandex_ implements PlugIn {
 		// medianImage is essentially our estimate for E_ref
 		ImagePlus medianImage = rawImgPlus.duplicate();
 		medianImage.setTitle("Background Image");
-		// Uses the 'Fast Filters' plugin
+		// Use the 'Fast Filters' plugin
 		int kernelSize = (int)(Math.round(20*sigma));
 		IJ.run(medianImage, "Fast Filters", "link filter=median x=" + kernelSize + " y=" + kernelSize + " preprocessing=none stack");
 		
@@ -217,33 +220,37 @@ public class Spandex_ implements PlugIn {
 		ImagePlus check = null;
 		
 		//morphological operations on basis of magnification
-		
 		Strel strel = Strel.Shape.DISK.fromRadius(1);
 		
+		//10x
 		if(tx){
-			check = new ImagePlus("Particles",finim);}	
-		if(twx || fx){
+			check = new ImagePlus("Particles",finim);
+		}	
+		//20x or 50x
+		if(twx || fx){ 
 			ImageProcessor finim1 = Morphology.erosion(finim,strel);
-			check = new ImagePlus("Particles",finim1);}
+			check = new ImagePlus("Particles",finim1);
+		}
+		
 		if(showIntermediateImages){
 			check.show();
 		}
 		
 		//detect particles
 		IJ.run(check,"Analyze Particles...", "size=0-400 circularity=0.40-1.00 show=[Overlay Outlines] display exclude clear record add in_situ");
-
+		//get results
 		ResultsTable resultsTable = ResultsTable.getResultsTable();
 		
-
+		//error handling for 0 particles
 		int xCol = resultsTable.getColumnIndex("XStart");
 		if(xCol==resultsTable.COLUMN_NOT_FOUND){
 			isParticle=false;
 			IJ.error("No particle is found");
 			return nirdisp;
 		}
-
+		
+		//get coordinates of detected particles
 		int yCol =  resultsTable.getColumnIndex("YStart");
-
 		xPos = resultsTable.getColumnAsDoubles(xCol);
 		yPos = resultsTable.getColumnAsDoubles(yCol);
 		
@@ -279,7 +286,6 @@ public class Spandex_ implements PlugIn {
 		}
 		dispim.show();
 		dispim.setOverlay(particleOverlay);
-		//IJ.run(rawImgPlus,"Enhance Contrast", "saturated=0.4");
 
 		// create a resultsTable and put it in the resultsWindow
 		ResultsTable resultsTable = new ResultsTable();
@@ -291,7 +297,7 @@ public class Spandex_ implements PlugIn {
 	}
 
 	private boolean showDialog() {
-
+		//set deconvolution parameters
 		preconditioner = IterativeEnums.PreconditionerType.valueOf("FFT");
 		preconditionerTol = -1;
 		boundary = IterativeEnums.BoundaryType.valueOf("REFLEXIVE");
@@ -302,6 +308,7 @@ public class Spandex_ implements PlugIn {
 		
 		GenericDialog gd = new GenericDialog("WELCOME TO SPANDEX");
 		
+		// particle detection settings input gui creation
 		// default value is 0.00, 2 digits right of the decimal point
 		gd.addNumericField("Sigma: decrease for small particles", 1.5, 1);
 		gd.addNumericField("Contrast Threshold (8-9 is default) - Decrease for dim particles", 0, 1);
@@ -310,7 +317,7 @@ public class Spandex_ implements PlugIn {
 		gd.addCheckbox("10x", true);
 		gd.addCheckbox("20x", false);
 		gd.addCheckbox("50x", false);
-
+		
 		gd.showDialog();
 		if (gd.wasCanceled())
 			return false;
@@ -324,7 +331,7 @@ public class Spandex_ implements PlugIn {
 		twx = gd.getNextBoolean();
 		fx = gd.getNextBoolean();
 		
-		//set radius and contrast threshold for binarization
+		//set radius and contrast threshold for thresholding depending on 10x,20x,50x
 		if(tx){
 				threshrad=14;
 				conthresh=8;
@@ -335,14 +342,14 @@ public class Spandex_ implements PlugIn {
 				threshrad=19;
 				conthresh=9;
 		}
-		
-		if(!(cthreshrad==0)){
+		//check if user did inputs for radius and threshold, if so override defaults
+		if(cthreshrad!=0){
 			threshrad=cthreshrad;
 		}
-		if(!(cctthresh==0)){
+		if(cctthresh!=0){
 			conthresh=cctthresh;
 		}
-
+		//check if multiple magnifications were selected
 		if(((tx^twx)^fx)){ return true; } else { IJ.error("Select one magnification!"); return false;}
 
 	}

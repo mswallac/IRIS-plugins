@@ -49,9 +49,10 @@ public class generate_LUT implements PlugIn {
 
 
 	public void run(String arg){
+		//check for valid image
 		imp = IJ.getImage();
         if(!(imp.getNChannels()==4)||!(imp.getNFrames()==1)) IJ.error("Use 4 channel, single frame image!");
-        
+        //
         getRef();
         getParams();
         for(int i=0;i<4;i++){
@@ -256,7 +257,7 @@ public class generate_LUT implements PlugIn {
 				filmr=iu.getFilm(i,temp);
 				medr=iu.getMedium(i,temp);
 				rsivalue=(iu.fresnel(1,1,sirefract,start,i));
-				rvalue=(iu.fresnel(medr,filmr,sirefract2,start,i));
+				rvalue=(iu.fresnel(filmr,medr,sirefract2,start,i));
 				s=(iu.interpolateLED(j,i));
 				s=(FastMath.sqrt(s));
 				if(s>=0) {

@@ -15,7 +15,7 @@ import org.apache.commons.math3.util.FastMath;
 import org.apache.commons.math3.util.Pair;
 
 import ij.IJ;
-
+// CLASS FOR RELATIVE SETTING (Does not calculate thickness (d))
 public class irisFun2 implements MultivariateJacobianFunction {
 	public int t;
 	public double thickness;
@@ -30,6 +30,8 @@ public class irisFun2 implements MultivariateJacobianFunction {
 		thickness=d;
 	}
 	
+
+	//function which returns value for use in optimization
 	public Pair<RealVector, RealMatrix> value(RealVector in) {
 		double[] din = in.toArray(),y = new double[4];
 		y = irisfxn(thickness, din[0], din[1]);
@@ -41,7 +43,8 @@ public class irisFun2 implements MultivariateJacobianFunction {
 		
 		return v;
 	}
-	
+
+	//specialized version of iris function for use with fitter
 	public double[] irisfxn(double start,double m,double b){
 		double sirefract,sirefract2,rsivalue,rvalue,s,filmr,medr;
 		double[] result = {0,0,0,0}, im = new double[251], mir = new double[251];
@@ -73,7 +76,8 @@ public class irisFun2 implements MultivariateJacobianFunction {
 		return (result);
 		
 	}
-	
+
+	//get jacobian for use with optimization
 	public RealMatrix getJacobian(double[] in) {
 		final RealMatrix jacobian = new Array2DRowRealMatrix(4,2);
 		jacobian.setColumn(0, irisfxn(thickness,in[0],in[1]));

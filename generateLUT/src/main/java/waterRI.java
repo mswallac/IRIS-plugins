@@ -3,7 +3,7 @@ import org.apache.commons.math3.analysis.UnivariateFunction;
 import org.apache.commons.math3.util.FastMath;
 
 import ij.IJ;
-
+//Class to solve for refractive index of water
 public class waterRI implements UnivariateFunction {
 double a0,a1,a2,a3,a4,a5,a6,a7,lambda_uv,lambda_ir,T_ref,p_ref,lambda_ref,T_bar,p,p_bar,lambda_bar,luv2,lir2,n2,lbar2,pbar2;
 double[] wtemps={0,4,10,20,30,40,50,60,70,80,90,100},plook={999.8,1000,999.7,998.2,995.7,992.2,988.1,983.2,977.8,971.8,965.3,958.4};
