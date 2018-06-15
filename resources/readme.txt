@@ -14,3 +14,4 @@ apply_LUT:
 generate_LUT:
   - commons-math3-3.6.1.jar
   - commons-lang-2.6.jar
+  - all DDogleg and EJML jars

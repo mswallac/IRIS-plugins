@@ -9,9 +9,7 @@ import ij.plugin.PlugIn;
 import ij.process.ImageProcessor;
 import ij.text.TextWindow;
 
-import java.awt.BorderLayout;
-import java.awt.GridLayout;
-import java.awt.Rectangle;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -22,19 +20,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import org.apache.commons.math3.linear.*;
-import org.apache.commons.math3.optim.ConvergenceChecker;
-import org.apache.commons.math3.optimization.DifferentiableMultivariateVectorMultiStartOptimizer;
-import org.apache.commons.math3.random.RandomDataGenerator;
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.util.FastMath;
-import org.apache.commons.math3.util.Precision;
-import org.apache.commons.math3.fitting.leastsquares.EvaluationRmsChecker;
-import org.apache.commons.math3.fitting.leastsquares.GaussNewtonOptimizer;
-import org.apache.commons.math3.fitting.leastsquares.LeastSquaresFactory;
-import org.apache.commons.math3.fitting.leastsquares.LeastSquaresOptimizer;
-import org.apache.commons.math3.fitting.leastsquares.LeastSquaresProblem;
-import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer;
-import org.apache.commons.math3.fitting.leastsquares.MultivariateJacobianFunction;
+import org.ddogleg.optimization.*;
 import org.apache.commons.lang.ArrayUtils;
 
 public class generate_LUT implements PlugIn {
@@ -48,48 +36,70 @@ public class generate_LUT implements PlugIn {
 	public static IrisUtils iu;
 
 
+	@SuppressWarnings("unchecked")
 	public void run(String arg){
-		//check for valid image
-		imp = IJ.getImage();
-        if(!(imp.getNChannels()==4)||!(imp.getNFrames()==1)) IJ.error("Use 4 channel, single frame image!");
-        //
+		//open image
+        String imppath = IJ.getFilePath("Open a 4-channel image.");
+        imp = IJ.openImage(imppath);
+        //open mirror
+        String mirpath = IJ.getFilePath("Open mirror image.");
+        ImagePlus mirror = IJ.openImage(mirpath);
+		ImageCalculator icalc = new ImageCalculator();
+		//divide to create normalized image
+		ImagePlus niImg = icalc.run("Divide create 32-bit stack", imp, mirror);
+		imp.close();
+		imp=niImg;
+		imp.updateAndDraw();
+		imp.show();
+		//fix image display for normalized image
+		IJ.run("Enhance Contrast", "saturated=0.5");
+		
+		//get reference regions and lookup table parameters
         getRef();
-        getParams();
+        if(!getParams()) return;
+        
+        //get reflectance normalized by bare silicon reflectance
         for(int i=0;i<4;i++){
         	ydata[i]=(filmavgs[i]/refavgs[i]);
         	IJ.log(""+ydata[i]);
         }
-        final RealVector obs = new ArrayRealVector(ydata);
-        ConvergenceChecker<LeastSquaresProblem.Evaluation> cc = new EvaluationRmsChecker(.0001);
-        final int eval=100000000;
-        final int iter=100000;
-        double[] guessa = {(((double)(thickness))/1000),1,0},guessr = {1,0};
-        
-        MultivariateJacobianFunction fn;
-        LeastSquaresProblem lsqprob = null;
-        final IrisUtils iu1 = new IrisUtils(med,film,(double)temp,(((double)(thickness))/1000));
-        iu = iu1;
-        if(mthd=="Relative") {
-        	final RealVector start = new ArrayRealVector(guessr);
-        	fn = new irisFun2(iu,temp,guessa[0]);
-            lsqprob = LeastSquaresFactory.create(fn,obs,start,cc,eval,iter);
-        }else if(mthd=="Accurate") {
-        	final RealVector start = new ArrayRealVector(guessa);
-        	fn = new irisFun(iu,temp);
-            lsqprob = LeastSquaresFactory.create(fn,obs,start,cc,eval,iter);
-        }
 
-        final LeastSquaresOptimizer optimizer = new LevenbergMarquardtOptimizer();
-        final LeastSquaresOptimizer.Optimum optimum = optimizer.optimize(lsqprob);
-        final RealVector value = optimum.getPoint();
+        //put thickness in microns and initialize IrisUtils object
+        double thicknessd = (((double)(thickness))/1000);
+        double[] guess = {thicknessd,1,0};
+        final IrisUtils iu1 = new IrisUtils(med,film,(double)temp,thicknessd);
+        iu = iu1;
+        
+        //intialize optimizer
+        UnconstrainedLeastSquares fitter = null;
+        //set optimization parameters and do optimization
+        if(mthd=="Relative") {
+            fitter = FactoryOptimization.leastSquaresLM(1e-3, true);
+        	irisFunc2 fn = new irisFunc2(iu,temp,guess[0],ydata);
+        	fitter.setFunction(fn, null);
+        	fitter.initialize(guess, 1e-2, 1e-6);
+        	UtilOptimize.process(fitter, 500);
+        	IJ.log(fitter.getWarning());
+        }else if(mthd=="Accurate") {
+            fitter = FactoryOptimization.leastSquaresLM(1e-3, true);
+        	irisFunc fn = new irisFunc(iu,temp,ydata);
+        	fitter.setFunction(fn, null);
+        	fitter.initialize(guess, 1e-5, 1e-2);
+        	UtilOptimize.process(fitter, 500);
+        	IJ.log(fitter.getWarning());
+        }
+        
+        //setup variables for lookup table
     	double[][] ic = new double[(above+below)+1][4];
-        double[] d = new double[(above+below)+1],coeff = value.toArray();
+        double[] d = new double[(above+below)+1],coeff = fitter.getParameters();
         int ct=0;
         
         for(int i=0;i<coeff.length;i++) {
         	IJ.log("coeff"+i+": "+coeff[i]);
         }
         
+        
+        //get all potential lookup tables
         if(mthd=="Relative") {
         	for(double i=-below;i<=(above);i+=increment) {
     	    	double[] values = new double[4];
@@ -111,15 +121,19 @@ public class generate_LUT implements PlugIn {
             	ct++;
             }
         }
-
+        
+        //choose the one with the best color (most responsive/highest diffsum)
 		RealMatrix mat = new Array2DRowRealMatrix(ic);
 		int bestc = bestColor(ic);
 		
+		//make the LUT
 	    makeLUT(mat.getColumn(bestc),d,bestc);
+	    
+	    imp.close();
 	}	
 
 
-	public void getParams() {
+	public boolean getParams() {
 		GenericDialog gd = new GenericDialog("Generate LUT: ");
 		gd.addNumericField("Approx. T (nm):", 100, 1);
 		gd.addNumericField("Look above:", 10, 1);
@@ -134,9 +148,10 @@ public class generate_LUT implements PlugIn {
 		gd.addChoice("Film Materal: ", films ,"SiO2");
 		
 		gd.showDialog();
-		if (gd.wasCanceled())
+		if (gd.wasCanceled()) {
 			IJ.error("GenerateLUT cancelled.");
-		
+			return false;
+		}
 		thickness=(int)gd.getNextNumber();
 		above=(int)gd.getNextNumber();
 		below=(int)gd.getNextNumber();
@@ -146,7 +161,7 @@ public class generate_LUT implements PlugIn {
 		med = gd.getNextChoice();
 		film = gd.getNextChoice();
 		
-		return;
+		return true;
 	}
 	
 	public void getRef(){
@@ -247,19 +262,21 @@ public class generate_LUT implements PlugIn {
 	
 	public double[] irisfxn(double start,double m,double b,double temp){
 		double sirefract,sirefract2,rsivalue,rvalue,s,filmr,medr;
-		double[] result = {0,0,0,0}, im = new double[251], mir = new double[251];
+		double[] result = {0,0,0,0}, im = new double[477], mir = new double[477];
 		
 		for(int j=0;j<4;j++) {
 			int ct=0;
-			for(double i=.4;i<.651;i+=0.001){
+			for(double i=.3500001;i<.827;i+=0.001){
+				//IJ.log("C"+j+" - "+ct);
 				sirefract=iu.interpolateSI(i);
 				sirefract2=iu.SiRI(i,temp);
 				filmr=iu.getFilm(i,temp);
 				medr=iu.getMedium(i,temp);
-				rsivalue=(iu.fresnel(1,1,sirefract,start,i));
-				rvalue=(iu.fresnel(filmr,medr,sirefract2,start,i));
+				rsivalue=-(iu.fresnel(1,1,sirefract,start,i));
+				rvalue=(iu.fresnel(medr,filmr,sirefract2,start,i));
 				s=(iu.interpolateLED(j,i));
 				s=(FastMath.sqrt(s));
+				//IJ.log(" nSi_l: "+sirefract+" R: "+rvalue+" RSi: "+rsivalue+" S: "+s+" MediumR: "+medr+" FilmR: "+filmr);
 				if(s>=0) {
 					mir[ct]=FastMath.pow(((s)*rsivalue),2);
 					im[ct]=FastMath.pow(((s)*rvalue),2);
@@ -272,7 +289,6 @@ public class generate_LUT implements PlugIn {
 			result[j] = ((StatUtils.sum(im))/(StatUtils.sum(mir)));
 			result[j] = ((result[j]*m) + b);
 		}
-		
 		return (result);
 		
 	}
