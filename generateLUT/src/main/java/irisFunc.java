@@ -49,8 +49,7 @@ public class irisFunc implements FunctionNtoM {
 				ct++;
 			}
 			result[j] = ((StatUtils.sum(im))/(StatUtils.sum(mir)));
-			if(start>0.120)
-				out[j] = ydata[j] - ((result[j]*m) + b);
+			out[j] = ydata[j] - ((result[j]*m) + b);
 		}
 		return;
 	}

@@ -78,14 +78,14 @@ public class generate_LUT implements PlugIn {
         	irisFunc2 fn = new irisFunc2(iu,temp,guess[0],ydata);
         	fitter.setFunction(fn, null);
         	fitter.initialize(guess, 1e-2, 1e-6);
-        	UtilOptimize.process(fitter, 500);
+        	UtilOptimize.process(fitter, 1000);
         	IJ.log(fitter.getWarning());
         }else if(mthd=="Accurate") {
             fitter = FactoryOptimization.leastSquaresLM(1e-3, true);
         	irisFunc fn = new irisFunc(iu,temp,ydata);
         	fitter.setFunction(fn, null);
         	fitter.initialize(guess, 1e-5, 1e-2);
-        	UtilOptimize.process(fitter, 500);
+        	UtilOptimize.process(fitter, 1000);
         	IJ.log(fitter.getWarning());
         }
         
