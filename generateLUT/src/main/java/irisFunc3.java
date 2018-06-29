@@ -1,32 +1,33 @@
 
+import org.ddogleg.optimization.functions.FunctionNtoM;
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.util.FastMath;
-import org.ddogleg.optimization.functions.FunctionNtoM;
-//CLASS FOR RELATIVE SETTING (does not calculate thickness)
+import ij.IJ;
+//CLASS FOR ACCURATE SETTING (Calculates thickness (d))
 
-public class irisFunc2 implements FunctionNtoM {
+public class irisFunc3 {
 	public int t;
-	public double thickness;
-	public IrisUtils iu;
+	public double tmp;
 	public double[] ydata;
+	public IrisUtils iu;
+	public boolean set=false;
 	
-	public irisFunc2(IrisUtils in1,double temp,double d,double[] y) {
-		iu=in1;
-		t=(int)temp;
-		thickness=d;
+	public irisFunc3(IrisUtils in1,double temp, double[] y) {
+		this.iu=in1;
+		tmp=temp;
 		ydata=y;
 	}
 
 	public int getNumOfInputsN() {
-		return 2;
+		return 3;
 	}
 
 	public int getNumOfOutputsM() {
 		return 4;
 	}
 
-	public void process(double[] in, double[] out) {
-		double sirefract,sirefract2,rsivalue,rvalue,s,filmr,medr,start=thickness,m=in[0],b=in[1],temp=t;
+	public double[] process(double start,double m,double b) {
+		double sirefract,sirefract2,rsivalue,rvalue,s,filmr,medr,temp=tmp;
 		double[] result = {0,0,0,0}, im = new double[477], mir = new double[477];
 		for(int j=0;j<4;j++) {
 			int ct=0;
@@ -49,9 +50,10 @@ public class irisFunc2 implements FunctionNtoM {
 				ct++;
 			}
 			result[j] = ((StatUtils.sum(im))/(StatUtils.sum(mir)));
-			out[j] = ydata[j] - ((result[j]*m) + b);
+			result[j] = ydata[j] - ((result[j]*m) + b);
 		}
-		return;
+		return result;
 	}
+
 
 }

@@ -1,3 +1,4 @@
+
 import org.ddogleg.optimization.functions.FunctionNtoM;
 import org.apache.commons.math3.stat.StatUtils;
 import org.apache.commons.math3.util.FastMath;
@@ -36,7 +37,7 @@ public class irisFunc implements FunctionNtoM {
 				filmr=iu.getFilm(i,temp);
 				medr=iu.getMedium(i,temp);
 				rsivalue=-(iu.fresnel(1,1,sirefract,start,i));
-				rvalue=(iu.fresnel(medr,filmr,sirefract2,start,i));
+				rvalue=(iu.fresnel(medr,filmr,sirefract,start,i));
 				s=(iu.interpolateLED(j,i));
 				s=(FastMath.sqrt(s));
 				if(s>=0) {

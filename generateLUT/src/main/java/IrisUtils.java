@@ -1,4 +1,5 @@
 
+
 import java.util.ArrayList;
 
 import org.apache.commons.math3.analysis.solvers.*;
@@ -149,7 +150,7 @@ public class IrisUtils {
 		double nWater;
 		waterRI wri = new waterRI(temp,lambda);
 		IllinoisSolver is = new IllinoisSolver();
-		nWater = (is.solve(1000000, wri,1,2,0));
+		nWater = (is.solve(1000000, wri,1,2,1));
 		return nWater;
 	}
 	

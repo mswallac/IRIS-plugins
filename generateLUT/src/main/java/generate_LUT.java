@@ -1,7 +1,9 @@
 
+
 import ij.IJ;
 import ij.ImagePlus;
 import ij.gui.GenericDialog;
+import ij.gui.Overlay;
 import ij.gui.Roi;
 import ij.gui.Toolbar;
 import ij.plugin.ImageCalculator;
@@ -25,7 +27,10 @@ import org.apache.commons.math3.util.FastMath;
 import org.ddogleg.optimization.*;
 import org.apache.commons.lang.ArrayUtils;
 
-public class generate_LUT implements PlugIn {
+import jep.Jep;
+import jep.python.*;
+
+public class generate_LUT implements PlugIn{
 	public ImagePlus imp;
 	public boolean canContinue,didCancel;
 	public int thickness,above,below,increment,temp;
@@ -34,9 +39,9 @@ public class generate_LUT implements PlugIn {
 	public JLabel refLabel,filmLabel;
 	public String mthd,med,film;
 	public static IrisUtils iu;
+	public Overlay over;
 
 
-	@SuppressWarnings("unchecked")
 	public void run(String arg){
 		//open image
         String imppath = IJ.getFilePath("Open a 4-channel image.");
@@ -52,11 +57,13 @@ public class generate_LUT implements PlugIn {
 		imp.updateAndDraw();
 		imp.show();
 		//fix image display for normalized image
-		IJ.run("Enhance Contrast", "saturated=0.5");
+		IJ.run("Enhance Contrast", "saturated=0.2");
 		
 		//get reference regions and lookup table parameters
         getRef();
         if(!getParams()) return;
+        
+ 
         
         //get reflectance normalized by bare silicon reflectance
         for(int i=0;i<4;i++){
@@ -67,31 +74,49 @@ public class generate_LUT implements PlugIn {
         //put thickness in microns and initialize IrisUtils object
         double thicknessd = (((double)(thickness))/1000);
         double[] guess = {thicknessd,1,0};
+        double[] guessr = {1,0};
         final IrisUtils iu1 = new IrisUtils(med,film,(double)temp,thicknessd);
         iu = iu1;
         
+
+		
+        
         //intialize optimizer
         UnconstrainedLeastSquares fitter = null;
+        double[] coeff = new double[3];
         //set optimization parameters and do optimization
         if(mthd=="Relative") {
             fitter = FactoryOptimization.leastSquaresLM(1e-3, true);
         	irisFunc2 fn = new irisFunc2(iu,temp,guess[0],ydata);
         	fitter.setFunction(fn, null);
-        	fitter.initialize(guess, 1e-2, 1e-6);
+        	fitter.initialize(guessr, 1e-2, 1e-6);
         	UtilOptimize.process(fitter, 1000);
         	IJ.log(fitter.getWarning());
+        	double[] temp = fitter.getParameters();
+        	coeff[0] = temp[0];
+        	coeff[1] = temp[1];
         }else if(mthd=="Accurate") {
-            fitter = FactoryOptimization.leastSquaresLM(1e-3, true);
-        	irisFunc fn = new irisFunc(iu,temp,ydata);
-        	fitter.setFunction(fn, null);
-        	fitter.initialize(guess, 1e-5, 1e-2);
-        	UtilOptimize.process(fitter, 1000);
-        	IJ.log(fitter.getWarning());
+            try {
+    			Jep jep = new Jep();
+    			jep.eval("import scipy.optimize\n");
+    			jep.eval("import numpy as np\n");
+                irisFunc3 func = new irisFunc3(iu,temp,ydata);
+                jep.set("fn", func);
+    			jep.eval("def f(x):\n	a = fn.process(x[0],x[1],x[2]);\n	return a;\n");
+    			jep.eval("guess = np.array(["+guess[0]+",1,0]);\n");
+    			jep.eval("result = scipy.optimize.least_squares(f,guess,jac='2-point',method='trf',bounds=[[0,0.5,-0.5],[.115,1.5,.5]])");
+    			jep.eval("cf = result.x");
+    			coeff = jep.getValue("cf",double[].class);
+    			jep.close();
+    		} catch (Exception e) {
+    			// TODO Auto-generated catch block
+    			e.printStackTrace();
+    		}
         }
         
         //setup variables for lookup table
     	double[][] ic = new double[(above+below)+1][4];
-        double[] d = new double[(above+below)+1],coeff = fitter.getParameters();
+        double[] d = new double[(above+below)+1];
         int ct=0;
         
         for(int i=0;i<coeff.length;i++) {
@@ -127,7 +152,7 @@ public class generate_LUT implements PlugIn {
 		int bestc = bestColor(ic);
 		
 		//make the LUT
-	    makeLUT(mat.getColumn(bestc),d,bestc);
+		makeLUT(mat.getColumn(bestc),d,bestc);
 	    
 	    imp.close();
 	}	
@@ -139,7 +164,7 @@ public class generate_LUT implements PlugIn {
 		gd.addNumericField("Look above:", 10, 1);
 		gd.addNumericField("Look below:", 10, 1);
 		gd.addNumericField("Increment (nm):", 1, 1);
-		gd.addNumericField("Temperature (C):", 25, 1);
+		//gd.addNumericField("Temperature (C):", 25, 1);
 		String[] methods = {"Accurate","Relative"};
 		gd.addChoice("Method: ", methods ,"Accurate");
 		String[] media = {"Water","Air"};
@@ -156,7 +181,7 @@ public class generate_LUT implements PlugIn {
 		above=(int)gd.getNextNumber();
 		below=(int)gd.getNextNumber();
 		increment=(int)gd.getNextNumber();
-		temp=(int)gd.getNextNumber();
+		temp=22;
 		mthd = gd.getNextChoice();
 		med = gd.getNextChoice();
 		film = gd.getNextChoice();
@@ -180,6 +205,7 @@ public class generate_LUT implements PlugIn {
 					refavgs[i-1]=takeroimean(imp.getRoi());
 				}
 				imp.setC(1);
+				over.add(imp.getRoi(), "Reference Region");
 			}
 		});
 		selectPanel.add(referenceButton);
@@ -193,6 +219,7 @@ public class generate_LUT implements PlugIn {
 					filmavgs[i-1]=takeroimean(imp.getRoi());
 				}
 				imp.setC(1);
+				over.add(imp.getRoi(), "Film Region");
 			}
 		});
 		selectPanel.add(filmButton);
@@ -273,7 +300,7 @@ public class generate_LUT implements PlugIn {
 				filmr=iu.getFilm(i,temp);
 				medr=iu.getMedium(i,temp);
 				rsivalue=-(iu.fresnel(1,1,sirefract,start,i));
-				rvalue=(iu.fresnel(medr,filmr,sirefract2,start,i));
+				rvalue=(iu.fresnel(medr,filmr,sirefract,start,i));
 				s=(iu.interpolateLED(j,i));
 				s=(FastMath.sqrt(s));
 				//IJ.log(" nSi_l: "+sirefract+" R: "+rvalue+" RSi: "+rsivalue+" S: "+s+" MediumR: "+medr+" FilmR: "+filmr);

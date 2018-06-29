@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" output="target/classes" path="src/main/java">
+	<classpathentry excluding="generate_LUT/" kind="src" output="target/classes" path="src/main/java">
 		<attributes>
 			<attribute name="optional" value="true"/>
 			<attribute name="maven.pomderived" value="true"/>
@@ -39,5 +39,6 @@
 	<classpathentry kind="lib" path="E:/OCN/Java Development/Misc/Resources/ddogleg-0.13-libs/ejml-fdense-0.33.jar"/>
 	<classpathentry kind="lib" path="E:/OCN/Java Development/Misc/Resources/ddogleg-0.13-libs/ejml-simple-0.33.jar"/>
 	<classpathentry kind="lib" path="E:/OCN/Java Development/Misc/Resources/ddogleg-0.13-libs/ejml-zdense-0.33.jar"/>
+	<classpathentry kind="lib" path="C:/Python27/Lib/site-packages/jep/jep-3.8.0.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
