@@ -31,7 +31,10 @@ public class IrisUtils {
 		double[][] c1 = new double[501][2],c2 = new double[501][2],c3 = new double[501][2],c4 = new double[501][2],
 				risi = new double[129][2],risio2 = new double[101][2],ripmma = new double[101][2];
 		//PATH TO LOAD LED SPECTRA -- CHANGE THIS WHEN LEDs CHANGE
-		TextWindow tw = new TextWindow("E:/OCN/Java Development/RBGHeightConv/LEDspectra_NEW.txt",1,1);
+		String specpath,ripath;
+		specpath = IJ.getFilePath("Choose LED spectra file (.txt, tab delineated (λ	R))");
+		ripath = IJ.getFilePath("Choose Si, SiO2, and PMMA refractive indicies file (.txt, tab delineated (λ	R))");
+		TextWindow tw = new TextWindow(specpath,1,1);
 		TextPanel tp = tw.getTextPanel();
 
 		for(int i=0;i<=tp.getLineCount()-1;i++){
@@ -53,7 +56,7 @@ public class IrisUtils {
 		cs.add(c4);
 		tw.dispose();
 		
-		tw = new TextWindow("E:/OCN/refractinds.txt",1,1);
+		tw = new TextWindow(ripath,1,1);
 		tp = tw.getTextPanel();
 		for(int i=0;i<=tp.getLineCount()-1;i++){
 			String s[] = tp.getLine(i).split("	");

@@ -4,13 +4,13 @@ import org.apache.commons.math3.util.FastMath;
 import org.ddogleg.optimization.functions.FunctionNtoM;
 //CLASS FOR RELATIVE SETTING (does not calculate thickness)
 
-public class irisFunc2 implements FunctionNtoM {
+public class irisFuncR {
 	public int t;
 	public double thickness;
 	public IrisUtils iu;
 	public double[] ydata;
 	
-	public irisFunc2(IrisUtils in1,double temp,double d,double[] y) {
+	public irisFuncR(IrisUtils in1,double temp,double d,double[] y) {
 		iu=in1;
 		t=(int)temp;
 		thickness=d;
@@ -25,8 +25,8 @@ public class irisFunc2 implements FunctionNtoM {
 		return 4;
 	}
 
-	public void process(double[] in, double[] out) {
-		double sirefract,sirefract2,rsivalue,rvalue,s,filmr,medr,start=thickness,m=in[0],b=in[1],temp=t;
+	public double[] process(double m, double b) {
+		double sirefract,sirefract2,rsivalue,rvalue,s,filmr,medr,start=thickness,temp=t;
 		double[] result = {0,0,0,0}, im = new double[477], mir = new double[477];
 		for(int j=0;j<4;j++) {
 			int ct=0;
@@ -49,9 +49,9 @@ public class irisFunc2 implements FunctionNtoM {
 				ct++;
 			}
 			result[j] = ((StatUtils.sum(im))/(StatUtils.sum(mir)));
-			out[j] = ydata[j] - ((result[j]*m) + b);
+			result[j] = ydata[j] - ((result[j]*m) + b);
 		}
-		return;
+		return result;
 	}
 
 }

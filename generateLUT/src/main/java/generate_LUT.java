@@ -83,33 +83,46 @@ public class generate_LUT implements PlugIn{
         
         //intialize optimizer
         UnconstrainedLeastSquares fitter = null;
-        double[] coeff = new double[3];
+        double[] coeff= {0,0,0};
         //set optimization parameters and do optimization
-        if(mthd=="Relative") {
+        if(mthd=="Relative") {/*
             fitter = FactoryOptimization.leastSquaresLM(1e-3, true);
-        	irisFunc2 fn = new irisFunc2(iu,temp,guess[0],ydata);
         	fitter.setFunction(fn, null);
         	fitter.initialize(guessr, 1e-2, 1e-6);
         	UtilOptimize.process(fitter, 1000);
-        	IJ.log(fitter.getWarning());
-        	double[] temp = fitter.getParameters();
-        	coeff[0] = temp[0];
-        	coeff[1] = temp[1];
+        	IJ.log(fitter.getWarning());*/
+            try {
+    			Jep jep = new Jep();
+    			jep.eval("import scipy.optimize as scio\n");
+    			jep.eval("import numpy as np\n");
+            	irisFuncR func = new irisFuncR(iu,temp,guess[0],ydata);
+                jep.set("fn", func);
+    			jep.eval("def f(x):\n	a = fn.process(x[0],x[1]);\n	return a;\n");
+    			jep.eval("guess = np.array([1,0]);\n");
+    			jep.eval("result = scio.least_squares(f,guess,jac='3-point',method='trf')");
+    			jep.eval("cf = result.x");
+    			double[] c = jep.getValue("cf",double[].class);
+    			coeff[0] = c[0];
+    			coeff[1] = c[1];
+    			jep.close();
+    		} catch (Exception e) {
+    			e.printStackTrace();
+    		}
         }else if(mthd=="Accurate") {
             try {
     			Jep jep = new Jep();
-    			jep.eval("import scipy.optimize\n");
+    			jep.eval("import scipy.optimize as scio\n");
     			jep.eval("import numpy as np\n");
-                irisFunc3 func = new irisFunc3(iu,temp,ydata);
+                irisFuncA func = new irisFuncA(iu,temp,ydata);
                 jep.set("fn", func);
     			jep.eval("def f(x):\n	a = fn.process(x[0],x[1],x[2]);\n	return a;\n");
     			jep.eval("guess = np.array(["+guess[0]+",1,0]);\n");
-    			jep.eval("result = scipy.optimize.least_squares(f,guess,jac='2-point',method='trf',bounds=[[0,0.5,-0.5],[.115,1.5,.5]])");
+    			jep.eval("result = scio.least_squares(f,guess,jac='3-point',method='trf',bounds=[[0,0.5,-0.8],[.115,2,.8]])");
     			jep.eval("cf = result.x");
-    			coeff = jep.getValue("cf",double[].class);
+    			double[] c = jep.getValue("cf",double[].class);
+    			coeff = c;
     			jep.close();
     		} catch (Exception e) {
-    			// TODO Auto-generated catch block
     			e.printStackTrace();
     		}
         }

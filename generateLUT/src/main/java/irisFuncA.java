@@ -5,14 +5,14 @@ import org.apache.commons.math3.util.FastMath;
 import ij.IJ;
 //CLASS FOR ACCURATE SETTING (Calculates thickness (d))
 
-public class irisFunc implements FunctionNtoM {
+public class irisFuncA {
 	public int t;
 	public double tmp;
 	public double[] ydata;
 	public IrisUtils iu;
 	public boolean set=false;
 	
-	public irisFunc(IrisUtils in1,double temp, double[] y) {
+	public irisFuncA(IrisUtils in1,double temp, double[] y) {
 		this.iu=in1;
 		tmp=temp;
 		ydata=y;
@@ -26,8 +26,8 @@ public class irisFunc implements FunctionNtoM {
 		return 4;
 	}
 
-	public void process(double[] in, double[] out) {
-		double sirefract,sirefract2,rsivalue,rvalue,s,filmr,medr,start=in[0],m=in[1],b=in[2],temp=tmp;
+	public double[] process(double start,double m,double b) {
+		double sirefract,sirefract2,rsivalue,rvalue,s,filmr,medr,temp=tmp;
 		double[] result = {0,0,0,0}, im = new double[477], mir = new double[477];
 		for(int j=0;j<4;j++) {
 			int ct=0;
@@ -50,9 +50,9 @@ public class irisFunc implements FunctionNtoM {
 				ct++;
 			}
 			result[j] = ((StatUtils.sum(im))/(StatUtils.sum(mir)));
-			out[j] = ydata[j] - ((result[j]*m) + b);
+			result[j] = ydata[j] - ((result[j]*m) + b);
 		}
-		return;
+		return result;
 	}
 
 
