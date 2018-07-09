@@ -1,32 +1,42 @@
 import ij.*;
 import ij.plugin.PlugIn;
+import ij.plugin.filter.RankFilters;
 import ij.plugin.frame.*;
 import ij.process.*;
+import inra.ijpb.morphology.Morphology;
+import inra.ijpb.morphology.Strel;
 import ij.gui.*;
 import ij.gui.Plot;
 import java.awt.*;
+import java.awt.Point;
 import java.awt.event.*;
 import java.text.DecimalFormat;
 import java.util.*;
+
+import javax.management.timer.Timer;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+
+import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.lang.time.StopWatch;
+import org.apache.commons.math3.util.FastMath;
+
 import ij.measure.ResultsTable;
 /*
  * This plugin takes regions of interests and monitors the mean intensity of each of them
  */
 public class roim
         implements PlugIn, MouseListener, MouseMotionListener, KeyListener, ImageListener, Runnable {
-    private ImagePlus imp;                  //the ImagePlus that we listen to and the last one
+    private ImagePlus imp,niImg;                  //the ImagePlus that we listen to and the last one
     private ImagePlus plotImage;            //where we plot the profile
     private Thread bgThread;                //thread for plotting
     private boolean doUpdate,didCancel,canContinue;
     public double countval=1,max=0,min=0,reference,background,spot,background1,spot1,background2,spot2,normspot,
-    		normspot1,normspot2,spotno,roino;
-    public int ref,current=0,sno=0,rno=0,bno=0;
+    		normspot1,normspot2;
+    public int ref,current=0,sno=0,rno=0,bno=0,spotno,roino,sigma,rad,frameinterval,frame=0;
     public ArrayList<Double> f = new ArrayList<Double>();
     public ArrayList<ArrayList<Double>> data = new ArrayList<ArrayList<Double>>();
     public ResultsTable table  = new ResultsTable();
@@ -40,44 +50,79 @@ public class roim
     public JPanel selectPanel,buttonPanel;
     public JButton referenceButton,backgroundButton,spotButton;
     public DecimalFormat printformat = new DecimalFormat("0");
+    public String dfrom;
     
     /* Initialization and plot for the first time. Later on, updates are triggered by the listeners **/
     public void run(String arg) {
     	
         imp = WindowManager.getCurrentImage();
+        
         if (imp==null){
         	IJ.noImage(); // get and check for image, return if there is none
         	return;
        	}
+        
+        imp.setSlice(1);
+        
+        
     	
         //input for number of spots
     	GenericDialog gd = new GenericDialog("Region of Interest Monitor");
-    	gd.addNumericField("Choose number of spots: ", 1, 1);
+    	gd.addNumericField("Enter number of spots (can be left at one for automatic): ", 1, 1);
+    	String[] method = {"Manual","Automatic"};
+    	String[] datafrom = {"Live","Recorded video"};
+    	gd.addChoice("Spot Detection", method, "Automatic");
+    	gd.addChoice("Data Source", datafrom, "Recorded video");
     	gd.showDialog();
 		if (gd.wasCanceled()) return;
 		//get spot number and calculate number of ROIs correspondingly
-    	spotno=gd.getNextNumber();
+    	spotno=(int) gd.getNextNumber();
+    	String choice = gd.getNextChoice();
+    	dfrom = gd.getNextChoice();
+    	
     	roino=(3+((spotno-1)*2));
     	
-    	if(!checkoverlay(imp)){
-    		overlay.clear();
-    		Color blue = new Color(0,0,255);
-	    	overlay.setLabelColor(blue);
-	    	overlay.drawLabels(true);
-	    	overlay.drawNames(true);
-	    	imp.setOverlay(overlay);
-	    	if(!roiSelector(imp)) return;
-    	}else {
-    		current=(int)roino;
+    	imp.setOverlay(overlay);
+    	
+    	if(dfrom=="Recorded video") {
+    		GenericDialog gd1 = new GenericDialog("Video settings");
+    		gd1.addNumericField("Interval between frames (seconds)", 6, 1);
+    		frameinterval=(int) gd1.getNextNumber();
+        	gd1.showDialog();
+    		if (gd1.wasCanceled()) return;
     	}
+    	
+    	if(choice=="Automatic") {
+    		GenericDialog gd1 = new GenericDialog("Spot detection settings");
+        	gd1.addNumericField("Gaussian blur radius (lower for dim spots): ", 8, 1);
+        	gd1.addNumericField("Erosion/closing radius (lower for small/dim spots): ", 10, 1);
+        	sigma=(int) gd1.getNextNumber();
+        	rad=(int) gd1.getNextNumber();
+        	gd1.showDialog();
+    		if (gd1.wasCanceled()) return;
+        	if(!roiDetector()) return;	
+        	defineRefRegion();
+    	}else {
+        	if(!roiSelector()) return;
+    		defineRefRegion();
+    	}
+    	
+    	deleteSpots();
+    	recountSpots();
+    	roiSelectorAdd();
+    	
+    	roino=(3+((spotno-1)*2));
     	
     	timer = new StopWatch();
     	timer.start();
     	
-        if (current!=roino) { // make sure we have image and ROIs before continuing
+    	if (current!=roino) { // make sure we have image and ROIs before continuing
             IJ.error("ROI Monitor","Please Select "+printformat.format(roino)+" ROIs");
             return;
         }
+    	
+    	
+        
         
         //get image processor of plot
         ImageProcessor ip = getPlot();  
@@ -100,38 +145,165 @@ public class roim
         createListeners();
     }
     
-    //checks that the overlay contains the right number of regions of interest based on initial user input
-    public boolean checkoverlay(ImagePlus imp) {
-    	Overlay test = imp.getOverlay();
-    	int a;
-    	if(test!=null) {
-    		overlay=test;
-    		a = test.size();
-    		return (a==roino);
-    	}else {
-    		return (false); // does not check names for now, will just look at number of ROIs
-    	}
-    	}
+	private void recountSpots() {
+		// TODO Auto-generated method stub
+		for(int i=0;i<spotno;i++) {
+			overlay.get(i).setName("Spot "+(i+1));
+			overlay.get(i+spotno).setName("Background "+(i+1));
+		}
+	}
 
-    public boolean roiSelector(ImagePlus imp) {	
+	private void deleteSpots() {
+		// TODO Auto-generated method stub
+		GenericDialog gd = new GenericDialog("Select spots to remove from overlay");
+		boolean[] rem = new boolean[spotno];
+		for(int i=1;i<spotno+1;i++) {
+			gd.addCheckbox("Spot "+i, false);
+		}
+    	gd.showDialog();
+		if (gd.wasCanceled()) return;
+		int removed=0;
+		for(int i=0;i<spotno;i++) {
+			rem[i] = gd.getNextBoolean();
+		}
+		for(int i=0;i<rem.length;i++) {
+			if(rem[i]) {
+				overlay.remove((overlay.getIndex("Spot "+(i+1))));
+				overlay.remove((overlay.getIndex("Background "+(i+1))));
+				removed++;
+				spotno--;
+			}	
+		}
+		sno-=removed;
+		bno-=removed;
+		current-=2*removed;
+	}
+
+	private boolean defineRefRegion() {
+    	//GridBagConstraints constraint = new GridBagConstraints(); maybe use to make GUI neat
+    	JPanel selectPanel = new JPanel();
+    	selectPanel.setLayout(new GridLayout(3,2,0,0));
+    	selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+    	imp.getWindow().toFront();
+    	IJ.setTool(Toolbar.RECTANGLE);
+    	//initialize buttons used for adding regions of interest
+    	referenceButton = new JButton("Add reference region");
+    	referenceButton.setEnabled(true);
+    	referenceButton.addActionListener(new ActionListener(){
+    	public void actionPerformed(ActionEvent e){refDefine();}});
+    	refLabel = new JLabel(" ("+printformat.format(rno)+"/1)");
+    	selectPanel.add(referenceButton);
+    	selectPanel.add(refLabel);
+		JFrame roiguide1 = new JFrame("Select and add reference region:");
+		// Create the buttonPanel, which has the "Cancel" and "OK" buttons
+		JPanel buttonPanel = new JPanel();
+		buttonPanel.setLayout(new GridLayout(1,2,20,20));
+		buttonPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+		JButton cancelButton = new JButton("Cancel");
+		cancelButton.setEnabled(true);
+		cancelButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+				didCancel = true;
+				roiguide1.dispose();
+				overlay.clear();
+			}
+		});
+		buttonPanel.add(cancelButton);
+		//add OK button and behavior
+		JButton okButton = new JButton("OK");
+		okButton.setEnabled(true);
+		okButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+				if(rno!=1){
+					IJ.error("ROI Manager","Please select one reference region.");
+				}else{
+					canContinue=true;
+					roiguide1.dispose();	
+				}
+			}
+		});
+		buttonPanel.add(okButton);
+
+    	
+		// Create and populate the JFrame
+		roiguide1.getContentPane().add(selectPanel, BorderLayout.NORTH);
+		roiguide1.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
+		roiguide1.setLocation(200,300);
+		roiguide1.setVisible(true);
+		roiguide1.setResizable(false);
+		roiguide1.pack();
+
+		// Wait for user to click either Cancel or OK button
+		canContinue = false;
+		didCancel = false;
+		while (!canContinue){
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+
+		return !didCancel; // if user pressed cancel return false
+		
+	}
+
+	public boolean roiDetector() {
+		ImagePlus imp2 = imp.duplicate();
+    	IJ.run(imp2, "Gaussian Blur...", "sigma="+sigma);
+		IJ.run(imp2, "Variance...", "radius="+rad);
+		IJ.run(imp2, "Make Binary", "method=Default background=Default calculate black");
+		ImageProcessor ip1 = imp2.getProcessor();
+		Strel strel = Strel.Shape.DISK.fromRadius((int)rad);
+		ImageProcessor ip2 = Morphology.closing(ip1,strel);
+		ImageProcessor ip3 = Morphology.erosion(ip2,strel);
+		ImagePlus imp3 = new ImagePlus("test",ip3);
+		IJ.run(imp3, "Analyze Particles...", "size=3200-Infinity circularity=0.85-1.00 show=[Overlay Outlines] display include in_situ");
+		Overlay spots = imp3.getOverlay();
+		if(spots==null) {
+			IJ.error("No spots detected.");
+			return false;
+		}
+		overlay = spots.duplicate();
+		imp.setOverlay(overlay);
+		IJ.run("Labels...", "color=yellow font=8 show use");
+		Roi[] rois = overlay.toArray();
+		sno=rois.length;
+		bno=sno;
+		spotno=sno;
+		current=bno+sno;
+		for(int i=0;i<rois.length;i++) {
+			Roi spot = rois[i];
+			overlay.get(i).setName("Spot "+(i+1));
+			Rectangle rect = spot.getBounds();
+			int x,y,w,h,nh,ny;
+			x = rect.x;
+			y = rect.y;
+			w = rect.width;
+			h = rect.height;
+			ny = y+h;
+			nh = FastMath.round(((float)(.25)*h));
+			imp.setRoi(x,ny,w,nh);
+			Roi backr = imp.getRoi();
+			backr.setName("Background "+(i+1));
+			overlay.add(backr);
+		}
+		imp.show();
+		imp.updateAndDraw();
+    	return true;
+    }
+
+
+	public boolean roiSelector() {	
     	//GridBagConstraints constraint = new GridBagConstraints(); maybe use to make GUI neat
 		JPanel selectPanel = new JPanel();
 		selectPanel.setLayout(new GridLayout(3,2,0,0));
 		selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 		imp.getWindow().toFront();
 		IJ.setTool(Toolbar.RECTANGLE);
+		IJ.run("Labels...", "color=yellow font=8 show use");
 		//initialize buttons used for adding regions of interest
-		referenceButton = new JButton("Add reference region");
-		referenceButton.setEnabled(true);
-		referenceButton.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent e){
-				refDefine();
-			}
-		});
-		refLabel = new JLabel(" ("+printformat.format(rno)+"/1)");
-		selectPanel.add(referenceButton);
-		selectPanel.add(refLabel);
-		
 		backgroundButton = new JButton("Add background 1");
 		backgroundButton.setEnabled(true);
 		backgroundButton.addActionListener(new ActionListener(){
@@ -173,8 +345,8 @@ public class roim
 		okButton.setEnabled(true);
 		okButton.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent e){
-				if(current!=roino){
-					IJ.error("ROI Manager","Please select " + printformat.format(roino) + " regions of interest.");
+				if(current!=roino-1){
+					IJ.error("ROI Manager","Please select " + printformat.format(spotno*2) + " regions of interest.");
 				}else{
 					canContinue=true;
 					roiguide.dispose();	
@@ -182,15 +354,90 @@ public class roim
 			}
 		});
 		buttonPanel.add(okButton);
-
 		// Create and populate the JFrame
 		roiguide = new JFrame("Add regions of interest:");
 		roiguide.getContentPane().add(selectPanel, BorderLayout.NORTH);
 		roiguide.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
-		roiguide.setLocation(400,400);
+		roiguide.setLocation(200,400);
 		roiguide.setVisible(true);
 		roiguide.setResizable(false);
 		roiguide.pack();
+
+		// Wait for user to click either Cancel or OK button
+		canContinue = false;
+		didCancel = false;
+		while (!canContinue){
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+
+		return !didCancel; // if user pressed cancel return false
+	}
+	
+	public boolean roiSelectorAdd() {
+		JFrame roiguide2 = new JFrame();
+    	//GridBagConstraints constraint = new GridBagConstraints(); maybe use to make GUI neat
+		JPanel selectPanel = new JPanel();
+		selectPanel.setLayout(new GridLayout(2,2,0,0));
+		selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+		imp.getWindow().toFront();
+		IJ.setTool(Toolbar.RECTANGLE);
+		IJ.run("Labels...", "color=yellow font=8 show use");
+		//initialize buttons used for adding regions of interest
+		spotButton = new JButton("Add spot "+(sno+1));
+		spotButton.setEnabled(true);
+		spotButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+				spotDefineAdd();
+			}
+		});
+		selectPanel.add(spotButton);
+	    
+		backgroundButton = new JButton("Add background "+(bno+1));
+		backgroundButton.setEnabled(true);
+		backgroundButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+				brDefineAdd();
+			}
+		});
+		selectPanel.add(backgroundButton);
+
+		// Create the buttonPanel, which has the "Cancel" and "OK" buttons
+		JPanel buttonPanel = new JPanel();
+		buttonPanel.setLayout(new GridLayout(1,2,20,20));
+		buttonPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
+		JButton cancelButton = new JButton("Cancel");
+		cancelButton.setEnabled(true);
+		cancelButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+				didCancel = true;
+				roiguide2.dispose();
+				overlay.clear();
+			}
+		});
+		buttonPanel.add(cancelButton);
+		//add OK button and behavior
+		JButton okButton = new JButton("OK");
+		okButton.setEnabled(true);
+		okButton.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent e){
+				canContinue=true;
+				roiguide2.dispose();	
+			}
+		});
+		buttonPanel.add(okButton);
+		
+		// Create and populate the JFrame
+		roiguide2.getContentPane().add(selectPanel, BorderLayout.NORTH);
+		roiguide2.getContentPane().add(buttonPanel, BorderLayout.SOUTH);
+		roiguide2.setLocation(200,400);
+		roiguide2.setVisible(true);
+		roiguide2.setResizable(false);
+		roiguide2.pack();
 
 		// Wait for user to click either Cancel or OK button
 		canContinue = false;
@@ -216,7 +463,7 @@ public class roim
         	current++;
         	Roi roi=imp.getRoi();
         	roi.setName("Reference");
-    		overlay.addElement(roi);
+    		overlay.add(roi);
     		refLabel.setText("("+printformat.format(rno)+"/1)");
     	}
 		if(rno==1){
@@ -234,7 +481,7 @@ public class roim
         	current++;
         	Roi roi=imp.getRoi();
         	roi.setName("Background "+bno);
-    		overlay.addElement(roi);
+    		overlay.add(roi);
     		backgroundButton.setText("Add background "+printformat.format(bno+1));
     		backgroundLabel.setText("("+printformat.format(bno)+"/"+printformat.format(spotno)+")");
     	}
@@ -256,7 +503,7 @@ public class roim
         		current++;
         		Roi roi=imp.getRoi();
             	roi.setName("Spot "+sno);
-        		overlay.addElement(roi);
+        		overlay.add(roi);
     			spotButton.setText("Add spot "+printformat.format(sno+1));
     			spotLabel.setText("("+printformat.format(sno)+"/"+printformat.format(spotno)+")");
     		}
@@ -267,7 +514,41 @@ public class roim
     	imp.killRoi();
     }
     
-
+    //function checks the addition of each ROI (for the background)
+    public void brDefineAdd(){
+    	if(imp.getRoi()==null){
+            IJ.error("ROI Monitor","Please select a background region"); return;
+    	}else {
+    		bno++;
+        	current++;
+        	Roi roi=imp.getRoi();
+        	roi.setName("Background "+bno);
+    		overlay.add(roi);
+    		backgroundButton.setText("Add background "+printformat.format(bno+1));
+    	}
+		if(bno>spotno) {
+			spotno++;
+		}
+    	imp.killRoi();
+    }
+    
+    //function checks the addition of each ROI (for the actual spot)
+    public void spotDefineAdd(){
+    	if(imp.getRoi()==null){
+            IJ.error("ROI Monitor","Please select a spot."); return;
+    	}else {
+    		sno++;
+        	current++;
+        	Roi roi=imp.getRoi();
+            roi.setName("Spot "+sno);
+        	overlay.add(roi);
+    		spotButton.setText("Add spot "+printformat.format(sno+1));
+    		if(sno>spotno) {
+    			spotno++;
+    		}
+    	}
+    	imp.killRoi();
+    }
 	
 	// these listeners are activated if the selection is changed in the corresponding ImagePlus
     public synchronized void mousePressed(MouseEvent e) { doUpdate = true; notify(); }   
@@ -390,8 +671,14 @@ public class roim
         	data.add(new ArrayList<Double>());
         }
         double tval=(double) timer.getTime();
-        f.add(tval/1000);
-        table.show("Time || Intensity");
+        double fval=frame;
+        frame++;
+        if(dfrom=="Recorded video") {
+            f.add((double)frame*frameinterval);	
+        }else {
+        	f.add(tval/1000);
+        }
+        table.show("Data");
 		table.incrementCounter();
         reference=takeroimean(overlay.get(overlay.getIndex("Reference")));
         table.addValue("Reference Intensity",reference);
@@ -410,6 +697,11 @@ public class roim
             data.get((i*3)+2).add(spot);
             data.get((i*3)+3).add(normspot);
     		table.addValue("Time",tval/1000);
+    		if(dfrom=="Recorded video") {
+    			table.addValue("Time",frame*frameinterval);	
+            }else {
+    			table.addValue("Time",tval/1000);	
+            }
     		table.addValue("Normalized Spot-"+(i+1)+" Intensity",normspot);
     		table.addValue("Spot-"+(i+1)+" Intensity",spot);
     		table.addValue("Background-"+(i+1)+" Intensity",background);
@@ -438,7 +730,6 @@ public class roim
 		}
 		//return average intensity
 		return (sum/count);
-		}
-}
-    
-
+	}
+	}
+	

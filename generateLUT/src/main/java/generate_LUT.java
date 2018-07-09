@@ -85,12 +85,7 @@ public class generate_LUT implements PlugIn{
         UnconstrainedLeastSquares fitter = null;
         double[] coeff= {0,0,0};
         //set optimization parameters and do optimization
-        if(mthd=="Relative") {/*
-            fitter = FactoryOptimization.leastSquaresLM(1e-3, true);
-        	fitter.setFunction(fn, null);
-        	fitter.initialize(guessr, 1e-2, 1e-6);
-        	UtilOptimize.process(fitter, 1000);
-        	IJ.log(fitter.getWarning());*/
+        if(mthd=="Relative") {
             try {
     			Jep jep = new Jep();
     			jep.eval("import scipy.optimize as scio\n");

@@ -29,6 +29,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="E:/OCN/Java Development/Misc/Resources/commons-lang-2.6/commons-lang-2.6.jar"/>
 	<classpathentry kind="lib" path="E:/OCN/Java Development/Misc/Resources/MorphoLibJ_-1.3.1.jar"/>
-	<classpathentry kind="lib" path="E:/OCN/Java Development/Misc/Resources/ParallelIterativeDeconvolution/parallel_iterative_deconvolution-1.9.jar"/>
+	<classpathentry kind="lib" path="E:/OCN/Java Development/Misc/Spandex Versions (Plugin)/Spandex Stuff/parallel_iterative_deconvolution-1.9.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
