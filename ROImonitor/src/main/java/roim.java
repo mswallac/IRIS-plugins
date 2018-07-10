@@ -3,10 +3,14 @@ import ij.plugin.PlugIn;
 import ij.plugin.filter.RankFilters;
 import ij.plugin.frame.*;
 import ij.process.*;
+import ij.text.TextPanel;
+import ij.text.TextWindow;
 import inra.ijpb.morphology.Morphology;
 import inra.ijpb.morphology.Strel;
 import ij.gui.*;
-import ij.gui.Plot;
+import ij.io.FileSaver;
+import ij.io.OpenDialog;
+
 import java.awt.*;
 import java.awt.Point;
 import java.awt.event.*;
@@ -33,10 +37,10 @@ public class roim
     private ImagePlus imp,niImg;                  //the ImagePlus that we listen to and the last one
     private ImagePlus plotImage;            //where we plot the profile
     private Thread bgThread;                //thread for plotting
-    private boolean doUpdate,didCancel,canContinue;
+    private boolean doUpdate,didCancel,canContinue,uselut;
     public double countval=1,max=0,min=0,reference,background,spot,background1,spot1,background2,spot2,normspot,
-    		normspot1,normspot2;
-    public int ref,current=0,sno=0,rno=0,bno=0,spotno,roino,sigma,rad,frameinterval,frame=0;
+    		normspot1,normspot2,thickness;
+    public int overlayspots,ref,current=0,sno=0,rno=0,bno=0,spotno,roino,sigma,rad,frameinterval,frame=0,lutlen;
     public ArrayList<Double> f = new ArrayList<Double>();
     public ArrayList<ArrayList<Double>> data = new ArrayList<ArrayList<Double>>();
     public ResultsTable table  = new ResultsTable();
@@ -51,6 +55,8 @@ public class roim
     public JButton referenceButton,backgroundButton,spotButton;
     public DecimalFormat printformat = new DecimalFormat("0");
     public String dfrom;
+    public float[][] lut;
+	public Overlay checkover;
     
     /* Initialization and plot for the first time. Later on, updates are triggered by the listeners **/
     public void run(String arg) {
@@ -63,26 +69,66 @@ public class roim
        	}
         
         imp.setSlice(1);
+        //check if overlay is valid and act appropriately
+        boolean preeover=false;
+        if(checkOverlay()) {
+        	imp.setOverlay(overlay);
+        }else {
+        	overlay=checkover.duplicate();
+        	imp.setOverlay(overlay);
+        	preeover=true;
+        }
+        int spotsdefault=1;
+        if(preeover) spotsdefault=overlayspots;
         
-        
-    	
         //input for number of spots
     	GenericDialog gd = new GenericDialog("Region of Interest Monitor");
-    	gd.addNumericField("Enter number of spots (can be left at one for automatic): ", 1, 1);
+    	gd.addNumericField("Enter number of spots (can be left at one for automatic): ", spotsdefault, 1);
     	String[] method = {"Manual","Automatic"};
     	String[] datafrom = {"Live","Recorded video"};
-    	gd.addChoice("Spot Detection", method, "Automatic");
+    	if(!preeover) gd.addChoice("Spot Detection", method, "Automatic");
     	gd.addChoice("Data Source", datafrom, "Recorded video");
+    	gd.addCheckbox("Use lookup table", false);
     	gd.showDialog();
 		if (gd.wasCanceled()) return;
 		//get spot number and calculate number of ROIs correspondingly
     	spotno=(int) gd.getNextNumber();
-    	String choice = gd.getNextChoice();
+    	String choice=" ";
+    	if(!preeover) choice = gd.getNextChoice();
     	dfrom = gd.getNextChoice();
+    	uselut = gd.getNextBoolean();
     	
     	roino=(3+((spotno-1)*2));
+    	if(preeover) {
+    		sno=overlayspots;
+	    	bno=sno;
+	    	rno=1;
+    	}
     	
-    	imp.setOverlay(overlay);
+    	if(uselut) {
+    		//ask for LUT path
+            OpenDialog LUT = new OpenDialog("Load a LUT File.");
+            while(LUT.getPath()==null){
+            	IJ.wait(200);
+            }
+            
+            //Load LUT into text window
+        	String path = LUT.getPath();
+            TextWindow tw = new TextWindow(path,100,300);
+            TextPanel tp = tw.getTextPanel();
+            
+            // Read LUT values
+            lutlen = tp.getLineCount();
+            lut = new float[lutlen][2];
+            for(int i=1;i<=tp.getLineCount()-1;i++){
+            	String s[] = tp.getLine(i).split("    ");
+            	lut[i][1]=Float.parseFloat(s[0]);
+            	lut[i][0]=Float.parseFloat(s[1]);
+            }
+            
+            // Close window
+            tw.dispose(); 
+    	}
     	
     	if(dfrom=="Recorded video") {
     		GenericDialog gd1 = new GenericDialog("Video settings");
@@ -102,13 +148,13 @@ public class roim
     		if (gd1.wasCanceled()) return;
         	if(!roiDetector()) return;	
         	defineRefRegion();
-    	}else {
+    	}else if(choice=="Manual"){
         	if(!roiSelector()) return;
     		defineRefRegion();
     	}
     	
     	deleteSpots();
-    	recountSpots();
+    	if(!preeover) recountSpots();
     	roiSelectorAdd();
     	
     	roino=(3+((spotno-1)*2));
@@ -116,7 +162,7 @@ public class roim
     	timer = new StopWatch();
     	timer.start();
     	
-    	if (current!=roino) { // make sure we have image and ROIs before continuing
+    	if (imp.getOverlay().toArray().length!=roino) { // make sure we have image and ROIs before continuing
             IJ.error("ROI Monitor","Please Select "+printformat.format(roino)+" ROIs");
             return;
         }
@@ -145,6 +191,55 @@ public class roim
         createListeners();
     }
     
+	private boolean checkOverlay() {
+		// TODO Auto-generated method stub
+        boolean overfail=false;
+        IJ.run("Labels...", "color=yellow font=8 show use");
+        checkover = imp.getOverlay();
+        if(checkover!=null) {
+	        Roi[] checkrois = checkover.toArray();
+	        overlayspots=0;
+	        boolean refexists=false;
+	        for(int i=0;i<checkrois.length;i++) {
+	        	String name = checkrois[i].getName();
+	        	if(name==null) {
+	        		IJ.error("Overlays should be named: 'Reference', 'Spot #', 'Background #', etc. The manual ROI selection automatically follows this naming convention.");
+	        		overfail=true;
+	        	}
+	        	for(int j=1;j<=(checkrois.length-1)/2;j++) {
+	        		if(name.equals("Spot "+j)) {
+	        		overlayspots++;
+	        	}
+	        	}
+	        	if(name.equals("Reference")) {
+	        		refexists=true;
+	        	}
+	        }
+	        if(checkrois.length!=((overlayspots*2)+1)) {
+	        	IJ.error("Overlays should contain a single reference region, and a background and spot region for each spot.");
+        		overfail=true;
+	        }
+	        if(!refexists) {
+	        	IJ.error("Overlays should contain a region named 'Reference' of bare Si.");
+        		overfail=true;
+	        }
+        FileSaver fs = new FileSaver(imp);
+        if(overfail) {
+        	IJ.showMessage("Save another version of this image if you would like to preserve your current overlay!");
+        	if(!fs.saveAsTiff()) {
+        		GenericDialog gend = new GenericDialog("Are you sure?");
+        		gend.addMessage("Are you sure you don't want to save a copy of this image with its current overlay?");
+        		gend.showDialog();
+        		if (gend.wasCanceled()) fs.saveAsTiff();
+        	}
+        }else {
+        	overlay=checkover;
+        }
+        }
+        if(checkover==null) return true;
+        else return overfail;
+	}
+
 	private void recountSpots() {
 		// TODO Auto-generated method stub
 		for(int i=0;i<spotno;i++) {
@@ -153,6 +248,24 @@ public class roim
 		}
 	}
 
+	public float interpolate(float data[][],float input, int size){
+		int ind=-1;
+		for(int i=0;i<size-1;i++){
+			if(input>data[i][0] && input<data[i+1][0])
+				ind=i;
+		}
+
+		if(ind!=-1){
+			float x1 = data[ind][0];
+			float x2 = data[ind+1][0];
+			float y1 = data[ind][1];
+			float y2 = data[ind+1][1];
+			return ((((y2-y1)/(x2-x1))*(input-x1))+y1);
+		}else {
+			return 0;
+		}
+	}
+	
 	private void deleteSpots() {
 		// TODO Auto-generated method stub
 		GenericDialog gd = new GenericDialog("Select spots to remove from overlay");
@@ -659,7 +772,8 @@ public class roim
         for(int i=0;i<5 && i<spotno;i++){
         	plot.setLimits(0, f.get(f.size()-1), min, max);
         	plot.setColor(colors[i]);
-        	plot.addPoints(f, data.get((i*3)+3), PlotWindow.LINE);
+        	if(uselut) plot.addPoints(f, data.get((i*3)+4), PlotWindow.LINE);
+        	else plot.addPoints(f, data.get((i*3)+3), PlotWindow.LINE);
         	plot.addLabel(0.025, (0.1*i)+0.1, "Spot "+(i+1));
         }
         //return plot image for display
@@ -667,9 +781,15 @@ public class roim
     }
 
     public synchronized void makedata(){
-        for(int i=0;i<(spotno*3)+1;i++) {
-        	data.add(new ArrayList<Double>());
-        }
+    	if(uselut) {
+	        for(int i=0;i<(spotno*4)+1;i++) {
+	        	data.add(new ArrayList<Double>());
+	        }
+    	}else {
+	        for(int i=0;i<(spotno*3)+1;i++) {
+	        	data.add(new ArrayList<Double>());
+	        }
+    	}
         double tval=(double) timer.getTime();
         double fval=frame;
         frame++;
@@ -689,22 +809,32 @@ public class roim
         	spot=takeroimean(overlay.get(overlay.getIndex("Spot "+(i+1))));
         	normspot=(spot-background)/reference;
         	//set graph min/max
-            if(normspot>max)max=(normspot*1.1);
-            if(normspot<min&&normspot>0)min=(normspot*.9);
-            if(normspot<min&&normspot<0)min=(normspot*1.1);
+        	if(uselut) {
+        		thickness=interpolate(lut,(float)(spot/reference),lutlen);
+	            if(normspot>max)max=(thickness*1.1);
+	            if(normspot<min&&normspot>0)min=(thickness*.9);
+	            if(normspot<min&&normspot<0)min=(thickness*1.1);
+        	}else {
+	            if(normspot>max)max=(normspot*1.1);
+	            if(normspot<min&&normspot>0)min=(normspot*.9);
+	            if(normspot<min&&normspot<0)min=(normspot*1.1);        		
+        	}
             //add to data structure/table
             data.get((i*3)+1).add(background);
             data.get((i*3)+2).add(spot);
             data.get((i*3)+3).add(normspot);
-    		table.addValue("Time",tval/1000);
+            if(uselut) data.get((i*3)+4).add(thickness);
+            
     		if(dfrom=="Recorded video") {
     			table.addValue("Time",frame*frameinterval);	
             }else {
     			table.addValue("Time",tval/1000);	
             }
-    		table.addValue("Normalized Spot-"+(i+1)+" Intensity",normspot);
-    		table.addValue("Spot-"+(i+1)+" Intensity",spot);
-    		table.addValue("Background-"+(i+1)+" Intensity",background);
+    		
+    		table.addValue("Normalized Spot - "+(i+1)+" Intensity",normspot);
+    		table.addValue("Spot - "+(i+1)+" Intensity",spot);
+    		table.addValue("Background - "+(i+1)+" Intensity",background);
+    		if(uselut) table.addValue("Spot Thickness - "+(i+1),thickness);
         }
         IJ.wait(70);
     }

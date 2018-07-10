@@ -109,7 +109,7 @@ public class apply_LUT implements PlugIn {
 				}
 		});
 		selectPanel.add(referenceButton);
-		final JFrame roiguide1 = new JFrame("Select and add reference region:");
+		final JFrame roiguide1 = new JFrame("Select and record reference region intensity:");
 		// Create the buttonPanel, which has the "Cancel" and "OK" buttons
 		JPanel buttonPanel = new JPanel();
 		buttonPanel.setLayout(new GridLayout(1,2,20,20));
