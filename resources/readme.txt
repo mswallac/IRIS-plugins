@@ -22,8 +22,8 @@ To install correct version of JEP install using setup.py from ZIP file with:
 >> python setup.py build install
 This uses Python 2.7.10.
 For more information (different versions,etc.) go here: https://github.com/ninia/jep/wiki/Getting-Started
+Install a JDK if you don't have one and set the directory as JAVA_HOME in your environment variables.
 
-JAVA RUNTIME ENVIRONMENT (MicroManager)
-
+JAVA RUNTIME ENVIRONMENT
 Extract jre.zip to micromanager directory and overwrite existing JRE
-(Java 10 may need to be installed seperately)
+Inst
