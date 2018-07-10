@@ -22,3 +22,8 @@ To install correct version of JEP install using setup.py from ZIP file with:
 >> python setup.py build install
 
 This uses Python 2.7.10.
+
+JAVA RUNTIME ENVIRONMENT (MicroManager)
+
+Extract jre.zip to micromanager directory and overwrite existing JRE
+(Java 10 may need to be installed seperately)
