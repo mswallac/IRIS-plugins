@@ -1,6 +1,5 @@
 import ij.*;
 import ij.plugin.PlugIn;
-import ij.plugin.filter.RankFilters;
 import ij.plugin.frame.*;
 import ij.process.*;
 import ij.text.TextPanel;
@@ -17,14 +16,12 @@ import java.awt.event.*;
 import java.text.DecimalFormat;
 import java.util.*;
 
-import javax.management.timer.Timer;
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
-import org.apache.commons.lang.math.NumberUtils;
 import org.apache.commons.lang.time.StopWatch;
 import org.apache.commons.math3.util.FastMath;
 
@@ -34,7 +31,7 @@ import ij.measure.ResultsTable;
  */
 public class roim
         implements PlugIn, MouseListener, MouseMotionListener, KeyListener, ImageListener, Runnable {
-    private ImagePlus imp,niImg;                  //the ImagePlus that we listen to and the last one
+    private ImagePlus imp;                  //the ImagePlus that we listen to and the last one
     private ImagePlus plotImage;            //where we plot the profile
     private Thread bgThread;                //thread for plotting
     private boolean doUpdate,didCancel,canContinue,uselut;
