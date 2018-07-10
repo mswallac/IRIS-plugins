@@ -16,6 +16,9 @@ generate_LUT:
   - commons-lang-2.6.jar
   - jep-3.8.0.jar
 
+JEP INSTALLATION:
 
-To install correct version of JEP install from ZIP file with: 
-python setup.py build install
+To install correct version of JEP install using setup.py from ZIP file with:
+>> python setup.py build install
+
+This uses Python 2.7.10.
