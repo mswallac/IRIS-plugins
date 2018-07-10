@@ -20,8 +20,8 @@ JEP INSTALLATION:
 
 To install correct version of JEP install using setup.py from ZIP file with:
 >> python setup.py build install
-
 This uses Python 2.7.10.
+For more information (different versions,etc.) go here: https://github.com/ninia/jep/wiki/Getting-Started
 
 JAVA RUNTIME ENVIRONMENT (MicroManager)
 
