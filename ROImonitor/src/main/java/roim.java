@@ -191,7 +191,7 @@ public class roim
 	private boolean checkOverlay() {
 		// TODO Auto-generated method stub
         boolean overfail=false;
-        IJ.run("Labels...", "color=yellow font=8 show use");
+        IJ.run("Labels...", "color=yellow font=10 show use");
         checkover = imp.getOverlay();
         if(checkover!=null) {
 	        Roi[] checkrois = checkover.toArray();
@@ -377,7 +377,7 @@ public class roim
 		}
 		overlay = spots.duplicate();
 		imp.setOverlay(overlay);
-		IJ.run("Labels...", "color=yellow font=8 show use");
+		IJ.run("Labels...", "color=yellow font=10 show use");
 		Roi[] rois = overlay.toArray();
 		sno=rois.length;
 		bno=sno;
@@ -412,7 +412,7 @@ public class roim
 		selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 		imp.getWindow().toFront();
 		IJ.setTool(Toolbar.RECTANGLE);
-		IJ.run("Labels...", "color=yellow font=8 show use");
+		IJ.run("Labels...", "color=yellow font=10 show use");
 		//initialize buttons used for adding regions of interest
 		backgroundButton = new JButton("Add background 1");
 		backgroundButton.setEnabled(true);
@@ -496,7 +496,7 @@ public class roim
 		selectPanel.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 		imp.getWindow().toFront();
 		IJ.setTool(Toolbar.RECTANGLE);
-		IJ.run("Labels...", "color=yellow font=8 show use");
+		IJ.run("Labels...", "color=yellow font=10 show use");
 		//initialize buttons used for adding regions of interest
 		spotButton = new JButton("Add spot "+(sno+1));
 		spotButton.setEnabled(true);
