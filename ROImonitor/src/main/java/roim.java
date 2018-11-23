@@ -54,6 +54,7 @@ public class roim
     public String dfrom;
     public float[][] lut;
 	public Overlay checkover;
+	private int rad1;
     
     /* Initialization and plot for the first time. Later on, updates are triggered by the listeners **/
     public void run(String arg) {
@@ -138,9 +139,11 @@ public class roim
     	if(choice=="Automatic") {
     		GenericDialog gd1 = new GenericDialog("Spot detection settings");
         	gd1.addNumericField("Gaussian blur radius (lower for dim spots): ", 8, 1);
+        	gd1.addNumericField("Variance filter radius (increase for dim spots): ", 10, 1);
         	gd1.addNumericField("Erosion/closing radius (lower for small/dim spots): ", 10, 1);
         	sigma=(int) gd1.getNextNumber();
         	rad=(int) gd1.getNextNumber();
+        	rad1=(int) gd1.getNextNumber();
         	gd1.showDialog();
     		if (gd1.wasCanceled()) return;
         	if(!roiDetector()) return;	
@@ -361,11 +364,12 @@ public class roim
 
 	public boolean roiDetector() {
 		ImagePlus imp2 = imp.duplicate();
+		IJ.run(imp2, "Options...", "iterations=1 count=1 black edm=Overwrite do=Nothing");
     	IJ.run(imp2, "Gaussian Blur...", "sigma="+sigma);
 		IJ.run(imp2, "Variance...", "radius="+rad);
 		IJ.run(imp2, "Make Binary", "method=Default background=Default calculate black");
 		ImageProcessor ip1 = imp2.getProcessor();
-		Strel strel = Strel.Shape.DISK.fromRadius((int)rad);
+		Strel strel = Strel.Shape.DISK.fromRadius((int)rad1);
 		ImageProcessor ip2 = Morphology.closing(ip1,strel);
 		ImageProcessor ip3 = Morphology.erosion(ip2,strel);
 		ImagePlus imp3 = new ImagePlus("test",ip3);
